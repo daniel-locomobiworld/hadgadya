@@ -2,7 +2,9 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>חד גדיא - Had Gadya: The Passover Game</title>
     <link rel="stylesheet" href="styles.css">
 </head>
@@ -27,6 +29,19 @@
                 <div id="total-timer">⏱️ Total: <span id="time-display">00:00.00</span></div>
             </div>
             <div id="level-display">Level: <span id="current-level">1</span>/10</div>
+        </div>
+    </div>
+
+    <!-- Mobile Touch Controls -->
+    <div id="mobile-controls" class="hidden">
+        <div id="dpad">
+            <button id="touch-up" class="dpad-btn">⬆️</button>
+            <div id="dpad-middle">
+                <button id="touch-left" class="dpad-btn">⬅️</button>
+                <button id="touch-action" class="dpad-btn action-btn">🎯</button>
+                <button id="touch-right" class="dpad-btn">➡️</button>
+            </div>
+            <button id="touch-down" class="dpad-btn">⬇️</button>
         </div>
     </div>
 
@@ -62,7 +77,7 @@
         <h2>❓ How To Play</h2>
         <div class="instructions">
             <p>🎯 <strong>Goal:</strong> Complete all 10 levels of Had Gadya before your Awakeness runs out!</p>
-            <p>⌨️ <strong>Controls:</strong> Arrow keys or WASD to move. Space/Enter for actions.</p>
+            <p>⌨️ <strong>Controls:</strong> Arrow keys/WASD to move. Space/Enter for actions. Touch controls on mobile!</p>
             <p>😴 <strong>Awakeness:</strong> Your awakeness slowly decreases. Find 🫓 Matzah to stay awake!</p>
             <p>⭐ <strong>Stars:</strong> Complete levels quickly to earn up to 3 stars!</p>
             <p>🏆 <strong>Speedrun:</strong> Try to beat all levels as fast as possible!</p>

@@ -60,6 +60,79 @@ class GameEngine {
         window.addEventListener('keyup', (e) => {
             this.keys[e.code] = false;
         });
+        
+        // Mobile touch controls
+        this.setupTouchControls();
+    }
+    
+    setupTouchControls() {
+        // Check if on mobile
+        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                        ('ontouchstart' in window);
+        
+        if (this.isMobile) {
+            document.getElementById('mobile-controls')?.classList.remove('hidden');
+        }
+        
+        // Touch button mappings
+        const touchButtons = {
+            'touch-up': 'ArrowUp',
+            'touch-down': 'ArrowDown',
+            'touch-left': 'ArrowLeft',
+            'touch-right': 'ArrowRight',
+            'touch-action': 'Space'
+        };
+        
+        Object.entries(touchButtons).forEach(([id, key]) => {
+            const btn = document.getElementById(id);
+            if (btn) {
+                // Touch start
+                btn.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.keys[key] = true;
+                    if (!this.keysJustPressed[key]) {
+                        this.keysJustPressed[key] = true;
+                    }
+                    btn.classList.add('pressed');
+                }, { passive: false });
+                
+                // Touch end
+                btn.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.keys[key] = false;
+                    btn.classList.remove('pressed');
+                }, { passive: false });
+                
+                // Touch cancel
+                btn.addEventListener('touchcancel', (e) => {
+                    this.keys[key] = false;
+                    btn.classList.remove('pressed');
+                });
+                
+                // Mouse support for testing on desktop
+                btn.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    this.keys[key] = true;
+                    btn.classList.add('pressed');
+                });
+                
+                btn.addEventListener('mouseup', (e) => {
+                    this.keys[key] = false;
+                    btn.classList.remove('pressed');
+                });
+                
+                btn.addEventListener('mouseleave', (e) => {
+                    this.keys[key] = false;
+                    btn.classList.remove('pressed');
+                });
+            }
+        });
+        
+        // Also allow tapping on canvas for action
+        this.canvas.addEventListener('touchstart', (e) => {
+            // Show mobile controls if hidden
+            document.getElementById('mobile-controls')?.classList.remove('hidden');
+        }, { passive: true });
     }
     
     isKeyDown(key) {

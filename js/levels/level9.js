@@ -22,17 +22,18 @@ class Level9 {
             y: 450,
             width: 40,
             height: 60,
-            speed: 0,
-            maxSpeed: 500,  // Faster max speed!
-            acceleration: 250,
-            deceleration: 150,
+            speed: 100,  // Start with some speed
+            maxSpeed: 400,  // Base max speed - NOT enough to catch butcher alone!
+            acceleration: 250,  // Good acceleration
+            deceleration: 120,  // Moderate deceleration
             steerSpeed: 250,
             emoji: '💀',
             spinning: false,
             spinTimer: 0,
             spinAngle: 0,
             cleanDriveTime: 0,  // Time driving without hitting anything
-            speedBonus: 0       // Bonus speed from clean driving
+            speedBonus: 0,      // Bonus speed from clean driving
+            boostCount: 0       // Track how many boosts collected
         };
         
         // Enemy (Butcher) - tries to escape!
@@ -41,8 +42,8 @@ class Level9 {
             y: 200,
             width: 40,
             height: 60,
-            speed: 160, // Slower base speed
-            maxSpeed: 240,
+            speed: 200, // Fast base speed - faster than player's base max!
+            maxSpeed: 260,
             emoji: '🧑‍🍳',
             wobble: 0,
             panic: 0 // Gets faster when you get close!
@@ -53,7 +54,7 @@ class Level9 {
         this.scrollPosition = 0;
         
         // Distance tracking - THE KEY TO WINNING
-        this.distanceToEnemy = 300; // Start far away
+        this.distanceToEnemy = 280; // Start far from butcher
         this.catchProgress = 0; // 0-100, reach 100 to catch!
         
         // Obstacles on track
@@ -69,6 +70,13 @@ class Level9 {
         
         // Matzah powerups (for awakeness)
         this.matzahPowerups = [];
+        
+        // Star of David powerups (invincibility!)
+        this.starPowerups = [];
+        this.invincibleTimer = 0; // Invincibility duration remaining
+        
+        // Incoming powerup warnings (flash at top before appearing)
+        this.incomingWarnings = [];
         
         // Track decorations (scrolling)
         this.decorations = [];
@@ -138,7 +146,7 @@ class Level9 {
         // BUTCHER AI - He ALWAYS tries to ESCAPE!
         // Butcher speeds up when you get close (panic!)
         this.enemy.panic = Math.max(0, 1 - this.distanceToEnemy / 200);
-        const butcherSpeed = this.enemy.speed + this.enemy.panic * 50; // Less panic boost
+        const butcherSpeed = this.enemy.speed + this.enemy.panic * 50; // Big panic boost when close
         
         // THE CHASE - Butcher is ALWAYS driving forward!
         // Distance changes based on relative speeds
@@ -147,19 +155,19 @@ class Level9 {
         const relativeSpeed = this.player.speed - butcherSpeed;
         
         // Butcher always tries to escape - you must be FASTER than him!
-        this.distanceToEnemy -= relativeSpeed * dt * 0.5;
+        this.distanceToEnemy -= relativeSpeed * dt * 1.0;
         
-        // If player is barely moving, butcher escapes FAST
+        // If player is barely moving, butcher escapes
         if (this.player.speed < 100) {
-            this.distanceToEnemy += (butcherSpeed * 0.3) * dt;
+            this.distanceToEnemy += (butcherSpeed * 0.25) * dt;
         }
         
-        this.distanceToEnemy = Math.max(0, Math.min(700, this.distanceToEnemy));
+        this.distanceToEnemy = Math.max(-50, Math.min(700, this.distanceToEnemy)); // Allow negative to get really close!
         
         // Update enemy position on screen (follows winding road)
-        // When escaping (high distance), butcher drives OFF THE TOP of the screen!
-        // Close (0) = y=250 (near player), Far (600+) = y=-50 (off screen top)
-        this.enemy.y = 250 - (this.distanceToEnemy * 0.5);
+        // FIXED: When distance is 0 or negative, butcher is RIGHT IN FRONT of player!
+        // Close (-50) = y=400 (about to collide!), Far (600+) = y=-50 (off screen top)
+        this.enemy.y = 400 - (this.distanceToEnemy * 0.7);
         this.enemy.wobble += dt * 4;
         // Butcher follows the road curve
         this.enemy.x = this.trackCenterX + this.trackCurve * 0.7 + Math.sin(this.enemy.wobble) * 30;
@@ -167,12 +175,21 @@ class Level9 {
         // BUTCHER SPILLS WINE to slow you down!
         this.wineSpillTimer -= dt;
         if (this.wineSpillTimer <= 0 && this.distanceToEnemy < 350) {
-            // Butcher drops wine behind him!
+            // Butcher drops wine - spawns at TOP of screen!
+            const curveOffset = this.trackCurve * 0.5;
             this.wineSpills.push({
-                x: this.enemy.x + (Math.random() - 0.5) * 40,
-                y: this.enemy.y + 50,
+                x: this.trackCenterX + curveOffset + (Math.random() - 0.5) * this.trackWidth * 0.6,
+                y: -100,  // Start at very top of screen
                 size: 35 + Math.random() * 15,
                 opacity: 1
+            });
+            // Add warning for wine too!
+            this.incomingWarnings.push({ 
+                x: this.trackCenterX + curveOffset + (Math.random() - 0.5) * this.trackWidth * 0.6, 
+                emoji: '🍷', 
+                timer: 0.8, 
+                flash: 0, 
+                type: 'danger' 
             });
             this.wineSpillTimer = 1.5 + Math.random() * 2; // Drop wine every 1.5-3.5 seconds
             
@@ -187,8 +204,8 @@ class Level9 {
             wine.y += this.scrollSpeed * dt;
             wine.x += this.trackCurveSpeed * dt * 0.3;
             
-            // Check collision with player - SPIN OUT!
-            if (!this.player.spinning) {
+            // Check collision with player - SPIN OUT! (unless invincible)
+            if (!this.player.spinning && this.invincibleTimer <= 0) {
                 const dx = this.player.x - wine.x;
                 const dy = this.player.y - wine.y;
                 const dist = Math.sqrt(dx * dx + dy * dy);
@@ -206,6 +223,9 @@ class Level9 {
                     }
                     wine.opacity = 0.3; // Fade the wine
                 }
+            } else if (this.invincibleTimer > 0 && this.checkCollision(this.player, {x: wine.x, y: wine.y, width: 40, height: 40})) {
+                // Invincible - splash through wine!
+                wine.opacity = 0.1;
             }
             
             return wine.y < 700 && wine.opacity > 0.2;
@@ -215,7 +235,15 @@ class Level9 {
         this.obstacleSpawnTimer -= dt;
         if (this.obstacleSpawnTimer <= 0 && this.player.speed > 50) {
             this.spawnObstacle();
-            this.obstacleSpawnTimer = 1.5 + Math.random() * 1.5; // Much less frequent: 1.5-3 seconds
+            this.obstacleSpawnTimer = 2.5 + Math.random() * 2.0; // Even less frequent: 2.5-4.5 seconds
+        }
+        
+        // Update invincibility timer
+        if (this.invincibleTimer > 0) {
+            this.invincibleTimer -= dt;
+            if (this.invincibleTimer <= 0) {
+                this.displayMessage('✡️ Shield fading...');
+            }
         }
         
         // Update obstacles
@@ -224,8 +252,12 @@ class Level9 {
             // Obstacles also follow road curve slightly
             obs.x += this.trackCurveSpeed * dt * 0.3;
             
-            // Check collision with player - SLOWS YOU DOWN!
+            // Check collision with player - SLOWS YOU DOWN! (unless invincible)
             if (this.checkCollision(this.player, obs)) {
+                if (this.invincibleTimer > 0) {
+                    // Invincible! Blast through obstacles!
+                    return false; // Destroy obstacle
+                }
                 this.player.speed *= 0.4; // Big slowdown!
                 this.player.cleanDriveTime = 0; // Reset streak!
                 this.player.speedBonus = 0;
@@ -246,8 +278,15 @@ class Level9 {
             boost.x += this.trackCurveSpeed * dt * 0.3;
             
             if (this.checkCollision(this.player, boost)) {
-                this.player.speed = Math.min(this.player.maxSpeed * 1.2, this.player.speed + 150);
-                this.displayMessage('⚡ BOOST! Keep the speed up!');
+                this.player.boostCount++;
+                this.player.maxSpeed += 100; // Permanent +100 to max speed per boost!
+                this.player.speed = Math.min(this.player.maxSpeed, this.player.speed + 150);
+                this.player.cleanDriveTime += 3; // Bonus clean drive time!
+                if (this.player.boostCount >= 2) {
+                    this.displayMessage('⚡⚡ DOUBLE BOOST! You can catch him now!');
+                } else {
+                    this.displayMessage('⚡ BOOST! Get one more to catch the Butcher!');
+                }
                 if (window.audioManager) {
                     window.audioManager.playSynthSound('powerup');
                 }
@@ -265,32 +304,73 @@ class Level9 {
             const dx = this.player.x - matzah.x;
             const dy = this.player.y - matzah.y;
             if (Math.sqrt(dx*dx + dy*dy) < 40) {
-                this.engine.addAwakeness(matzah.awakenessBoost);
-                this.displayMessage('🫓 Matzah! +15 Awakeness!');
+                this.engine.addAwakeness(matzah.awakenessBoost * 2); // Double awakeness!
+                this.displayMessage('🫓 Matzah! +30 Awakeness!');
                 return false;
             }
             
             return matzah.y < 650;
         });
         
-        // Spawn boost/matzah occasionally
-        if (Math.random() < dt * 0.6) {
+        // Update incoming warnings (flash before powerups appear)
+        this.incomingWarnings = this.incomingWarnings.filter(warning => {
+            warning.timer -= dt;
+            warning.flash += dt * 15; // Fast flash
+            return warning.timer > 0;
+        });
+        
+        // Spawn boost/matzah/star occasionally
+        if (Math.random() < dt * 0.5) {
             const curveOffset = this.trackCurve * 0.5;
             const x = this.trackCenterX + curveOffset + (Math.random() - 0.5) * this.trackWidth * 0.8;
-            if (Math.random() < 0.2) {
-                const m = new MatzahPowerup(x, -50);
-                m.y = -50;
+            const roll = Math.random();
+            if (roll < 0.03) {
+                // Star of David - VERY rare invincibility powerup!
+                // Add warning first!
+                this.incomingWarnings.push({ x: x, emoji: '✡️', timer: 1.0, flash: 0, type: 'star' });
+                this.starPowerups.push({
+                    x: x,
+                    y: -100,
+                    width: 35,
+                    height: 35,
+                    emoji: '✡️'
+                });
+            } else if (roll < 0.15) {
+                // Matzah warning
+                this.incomingWarnings.push({ x: x, emoji: '🫓', timer: 0.8, flash: 0, type: 'matzah' });
+                const m = new MatzahPowerup(x, -100);
+                m.y = -100;
                 this.matzahPowerups.push(m);
             } else {
+                // Boost warning
+                this.incomingWarnings.push({ x: x, emoji: '⚡', timer: 0.8, flash: 0, type: 'boost' });
                 this.boosts.push({
                     x: x,
-                    y: -50,
+                    y: -100,
                     width: 30,
                     height: 30,
                     emoji: '⚡'
                 });
             }
         }
+        
+        // Update star powerups
+        this.starPowerups = this.starPowerups.filter(star => {
+            star.y += this.scrollSpeed * dt;
+            star.x += this.trackCurveSpeed * dt * 0.3;
+            
+            if (this.checkCollision(this.player, star)) {
+                this.invincibleTimer = 8; // 8 seconds of invincibility!
+                this.player.speed = Math.min(this.player.maxSpeed, this.player.speed + 200); // Speed boost too!
+                this.displayMessage('✡️ STAR POWER! Invincible for 8 seconds!');
+                if (window.audioManager) {
+                    window.audioManager.playSynthSound('powerup');
+                }
+                return false;
+            }
+            
+            return star.y < 650;
+        });
         
         // Update decorations (scrolling)
         this.decorations.forEach(dec => {
@@ -330,13 +410,13 @@ class Level9 {
         }
         
         // LOSE CONDITION - Butcher escapes off the top of the screen!
-        if (this.distanceToEnemy >= 450 && !this.butcherEscaping) {
+        if (this.distanceToEnemy >= 550 && !this.butcherEscaping) {
             this.butcherEscaping = true;
             this.displayMessage('💨 The Butcher is ESCAPING!');
         }
         
         // Butcher drives off screen to escape (y goes negative)
-        if (this.enemy.y < -30) {
+        if (this.enemy.y < -80) {
             this.displayMessage('💨 The Butcher ESCAPED! You were too slow!');
             setTimeout(() => this.reset(), 2000);
         }
@@ -403,8 +483,13 @@ class Level9 {
             // Clean driving streak - go faster the longer without hitting!
             if (!this.player.spinning) {
                 this.player.cleanDriveTime += dt;
-                // Every 2 seconds of clean driving, gain speed bonus (up to +100)
-                this.player.speedBonus = Math.min(100, this.player.cleanDriveTime * 15);
+                // After 15 seconds of clean driving, gain enough bonus to catch butcher!
+                // Need +200 bonus to match butcher's 200 speed with player's 400 base
+                this.player.speedBonus = Math.min(250, this.player.cleanDriveTime * 16.67); // 250 bonus at 15 sec
+                
+                if (this.player.cleanDriveTime >= 15 && this.player.cleanDriveTime < 15.1) {
+                    this.displayMessage('🔥 PERFECT DRIVING! Max speed unlocked!');
+                }
             }
         } else if (this.engine.isKeyDown('down')) {
             this.player.speed -= this.player.deceleration * dt * 2;
@@ -455,7 +540,7 @@ class Level9 {
         
         this.obstacles.push({
             x: x,
-            y: -50,
+            y: -100,
             width: 35,
             height: 35,
             emoji: obstacles[Math.floor(Math.random() * obstacles.length)]
@@ -580,6 +665,53 @@ class Level9 {
             ctx.fillText(boost.emoji, boost.x, boost.y);
         });
         
+        // Draw star powerups (with glow effect!)
+        this.starPowerups.forEach(star => {
+            ctx.save();
+            // Glowing effect
+            ctx.shadowColor = 'gold';
+            ctx.shadowBlur = 20;
+            ctx.font = '35px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText(star.emoji, star.x, star.y);
+            ctx.restore();
+        });
+        
+        // Draw incoming powerup warnings at top of screen!
+        this.incomingWarnings.forEach(warning => {
+            ctx.save();
+            // Flashing effect
+            const flashAlpha = 0.5 + 0.5 * Math.sin(warning.flash);
+            ctx.globalAlpha = flashAlpha;
+            
+            // Draw arrow pointing down
+            ctx.fillStyle = warning.type === 'star' ? 'gold' : 
+                           warning.type === 'boost' ? '#00ffff' : 
+                           warning.type === 'danger' ? '#ff4444' : '#ffcc00';
+            ctx.beginPath();
+            ctx.moveTo(warning.x, 60);
+            ctx.lineTo(warning.x - 15, 45);
+            ctx.lineTo(warning.x + 15, 45);
+            ctx.closePath();
+            ctx.fill();
+            
+            // Glowing background circle
+            ctx.shadowColor = warning.type === 'star' ? 'gold' : 
+                             warning.type === 'danger' ? '#ff0000' : '#00ffff';
+            ctx.shadowBlur = 15;
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.beginPath();
+            ctx.arc(warning.x, 30, 22, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Draw the emoji
+            ctx.font = '25px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(warning.emoji, warning.x, 30);
+            ctx.restore();
+        });
+        
         // Draw wine spills on road!
         this.wineSpills.forEach(wine => {
             ctx.save();
@@ -610,6 +742,25 @@ class Level9 {
         // Draw player (Angel of Death - same size as butcher)
         ctx.save();
         ctx.translate(this.player.x, this.player.y);
+        
+        // Invincibility shield effect!
+        if (this.invincibleTimer > 0) {
+            ctx.save();
+            // Pulsing golden shield
+            const pulse = 0.5 + 0.5 * Math.sin(this.gameTime * 10);
+            ctx.shadowColor = 'gold';
+            ctx.shadowBlur = 30 * pulse;
+            ctx.strokeStyle = `rgba(255, 215, 0, ${0.5 + 0.5 * pulse})`;
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(0, 0, 50, 0, Math.PI * 2);
+            ctx.stroke();
+            // Star of David in shield
+            ctx.font = '20px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('✡️', 0, -45);
+            ctx.restore();
+        }
         
         // Rotate if spinning!
         if (this.player.spinning) {
@@ -755,31 +906,32 @@ class Level9 {
             y: 450,
             width: 40,
             height: 60,
-            speed: 0,
-            maxSpeed: 500,
+            speed: 100,
+            maxSpeed: 400,
             acceleration: 250,
-            deceleration: 150,
+            deceleration: 120,
             steerSpeed: 250,
             emoji: '💀',
             spinning: false,
             spinTimer: 0,
             spinAngle: 0,
             cleanDriveTime: 0,
-            speedBonus: 0
+            speedBonus: 0,
+            boostCount: 0
         };
         this.enemy = {
             x: 400,
             y: 200,
             width: 40,
             height: 60,
-            speed: 160,
-            maxSpeed: 240,
+            speed: 200,
+            maxSpeed: 260,
             emoji: '🧑‍🍳',
             wobble: 0,
             panic: 0
         };
         this.scrollPosition = 0;
-        this.distanceToEnemy = 300;
+        this.distanceToEnemy = 280;
         this.catchProgress = 0;
         this.trackCurve = 0;
         this.trackCurveSpeed = 0;
@@ -789,6 +941,9 @@ class Level9 {
         this.wineSpills = [];
         this.wineSpillTimer = 2;
         this.matzahPowerups = [];
+        this.starPowerups = [];
+        this.invincibleTimer = 0;
+        this.incomingWarnings = [];
         this.complete = false;
         this.butcherEscaping = false;
         this.showMessage = false;

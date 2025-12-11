@@ -1,0 +1,1303 @@
+// Had Gadya Game Engine
+// Core game engine with common functionality
+
+class GameEngine {
+    constructor() {
+        this.canvas = document.getElementById('gameCanvas');
+        this.ctx = this.canvas.getContext('2d');
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
+        
+        // Game state
+        this.running = false;
+        this.paused = false;
+        this.lastTime = 0;
+        this.deltaTime = 0;
+        
+        // Input handling
+        this.keys = {};
+        this.keysJustPressed = {};
+        
+        // Awakeness system
+        this.awakeness = 100;
+        this.awakenessDecayRate = 0.5; // Per second
+        
+        // Timer
+        this.totalTime = 0;
+        this.levelTime = 0;
+        
+        // Level data
+        this.currentLevel = 1;
+        this.levelData = {};
+        this.levelProgress = this.loadProgress();
+        
+        // Setup input listeners
+        this.setupInput();
+        
+        // Callbacks
+        this.onUpdate = null;
+        this.onRender = null;
+        this.onGameOver = null;
+        this.onLevelComplete = null;
+        
+        // Game over reason tracking
+        this.gameOverReason = '';
+    }
+    
+    setupInput() {
+        window.addEventListener('keydown', (e) => {
+            if (!this.keys[e.code]) {
+                this.keysJustPressed[e.code] = true;
+            }
+            this.keys[e.code] = true;
+            
+            // Prevent scrolling with arrow keys
+            if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+                e.preventDefault();
+            }
+        });
+        
+        window.addEventListener('keyup', (e) => {
+            this.keys[e.code] = false;
+        });
+    }
+    
+    isKeyDown(key) {
+        const keyMap = {
+            'up': ['ArrowUp', 'KeyW'],
+            'down': ['ArrowDown', 'KeyS'],
+            'left': ['ArrowLeft', 'KeyA'],
+            'right': ['ArrowRight', 'KeyD'],
+            'action': ['Space', 'Enter', 'KeyZ'],
+            'cancel': ['Escape', 'KeyX']
+        };
+        
+        if (keyMap[key]) {
+            return keyMap[key].some(k => this.keys[k]);
+        }
+        return this.keys[key];
+    }
+    
+    isKeyJustPressed(key) {
+        const keyMap = {
+            'up': ['ArrowUp', 'KeyW'],
+            'down': ['ArrowDown', 'KeyS'],
+            'left': ['ArrowLeft', 'KeyA'],
+            'right': ['ArrowRight', 'KeyD'],
+            'action': ['Space', 'Enter', 'KeyZ'],
+            'cancel': ['Escape', 'KeyX']
+        };
+        
+        if (keyMap[key]) {
+            return keyMap[key].some(k => this.keysJustPressed[k]);
+        }
+        return this.keysJustPressed[key];
+    }
+    
+    clearJustPressed() {
+        this.keysJustPressed = {};
+    }
+    
+    // Awakeness system
+    updateAwakeness(dt) {
+        this.awakeness -= this.awakenessDecayRate * dt;
+        this.awakeness = Math.max(0, Math.min(100, this.awakeness));
+        
+        // Update UI
+        const fill = document.getElementById('awakeness-fill');
+        const percent = document.getElementById('awakeness-percent');
+        fill.style.width = this.awakeness + '%';
+        percent.textContent = Math.round(this.awakeness) + '%';
+        
+        if (this.awakeness < 30) {
+            fill.classList.add('low');
+        } else {
+            fill.classList.remove('low');
+        }
+        
+        // Snoring sound when getting sleepy (below 40% awakeness)
+        if (window.audioManager) {
+            if (this.awakeness < 40) {
+                // Volume increases as awakeness decreases (0 at 40%, max at 0%)
+                const snoreVolume = (40 - this.awakeness) / 40;
+                if (!window.audioManager.snoreInterval) {
+                    window.audioManager.startSnoring(snoreVolume);
+                } else {
+                    window.audioManager.updateSnoreVolume(snoreVolume);
+                }
+            } else {
+                // Stop snoring when awakeness is above 40%
+                window.audioManager.stopSnoring();
+            }
+        }
+        
+        return this.awakeness > 0;
+    }
+    
+    addAwakeness(amount) {
+        this.awakeness = Math.min(100, this.awakeness + amount);
+    }
+    
+    setGameOverReason(reason) {
+        this.gameOverReason = reason;
+    }
+    
+    triggerGameOver(reason) {
+        this.gameOverReason = reason;
+        if (this.onGameOver) {
+            this.onGameOver();
+        }
+    }
+    
+    // Timer
+    updateTimer(dt) {
+        this.totalTime += dt;
+        this.levelTime += dt;
+        
+        const totalDisplay = document.getElementById('time-display');
+        const levelDisplay = document.getElementById('level-time-display');
+        totalDisplay.textContent = this.formatTime(this.totalTime);
+        if (levelDisplay) {
+            levelDisplay.textContent = this.formatTime(this.levelTime);
+        }
+    }
+    
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 100);
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+    }
+    
+    // Game loop
+    start() {
+        this.running = true;
+        this.lastTime = performance.now();
+        requestAnimationFrame((t) => this.gameLoop(t));
+    }
+    
+    stop() {
+        this.running = false;
+    }
+    
+    gameLoop(currentTime) {
+        if (!this.running) return;
+        
+        this.deltaTime = (currentTime - this.lastTime) / 1000;
+        this.lastTime = currentTime;
+        
+        // Cap delta time to prevent huge jumps
+        this.deltaTime = Math.min(this.deltaTime, 0.1);
+        
+        if (!this.paused) {
+            // Update awakeness
+            if (!this.updateAwakeness(this.deltaTime)) {
+                this.gameOverReason = '😴 Your awakeness reached zero! You fell asleep at the Seder table.';
+                this.onGameOver();
+                return;
+            }
+            
+            // Update timer
+            this.updateTimer(this.deltaTime);
+            
+            // Update music speed based on awakeness (speeds up as you get sleepy!)
+            if (window.musicPlayer && window.musicPlayer.isPlaying) {
+                // Speed up music as awakeness drops
+                const speedMultiplier = 1 + (1 - this.awakeness / 100) * 1.2;
+                window.musicPlayer.setSpeed(speedMultiplier);
+            }
+            
+            // Level-specific update
+            if (this.onUpdate) {
+                this.onUpdate(this.deltaTime);
+            }
+        }
+        
+        // Render
+        this.render();
+        
+        // Clear just pressed keys
+        this.clearJustPressed();
+        
+        requestAnimationFrame((t) => this.gameLoop(t));
+    }
+    
+    render() {
+        // Clear canvas
+        this.ctx.fillStyle = '#2d5a27';
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Level-specific render
+        if (this.onRender) {
+            this.onRender(this.ctx);
+        }
+    }
+    
+    // Progress management
+    loadProgress() {
+        const saved = localStorage.getItem('hadGadyaProgress');
+        if (saved) {
+            return JSON.parse(saved);
+        }
+        return {
+            unlockedLevel: 1,
+            levels: {}
+        };
+    }
+    
+    saveProgress() {
+        localStorage.setItem('hadGadyaProgress', JSON.stringify(this.levelProgress));
+    }
+    
+    completeLevelWithStars(levelNum, time) {
+        // Calculate stars based on time (these thresholds can be adjusted per level)
+        const thresholds = this.getStarThresholds(levelNum);
+        let stars = 1;
+        if (time <= thresholds[0]) stars = 3;
+        else if (time <= thresholds[1]) stars = 2;
+        
+        // Update progress
+        if (!this.levelProgress.levels[levelNum] || this.levelProgress.levels[levelNum].stars < stars) {
+            this.levelProgress.levels[levelNum] = {
+                stars: stars,
+                bestTime: time
+            };
+        } else if (this.levelProgress.levels[levelNum].bestTime > time) {
+            this.levelProgress.levels[levelNum].bestTime = time;
+        }
+        
+        // Unlock next level
+        if (levelNum >= this.levelProgress.unlockedLevel && levelNum < 10) {
+            this.levelProgress.unlockedLevel = levelNum + 1;
+        }
+        
+        this.saveProgress();
+        return stars;
+    }
+    
+    getStarThresholds(levelNum) {
+        // Time in seconds for 3 stars, 2 stars
+        const thresholds = {
+            1: [30, 60],
+            2: [45, 90],
+            3: [40, 80],
+            4: [50, 100],
+            5: [35, 70],
+            6: [45, 90],
+            7: [40, 80],
+            8: [50, 100],
+            9: [45, 90],
+            10: [60, 120]
+        };
+        return thresholds[levelNum] || [60, 120];
+    }
+    
+    getTotalStars() {
+        let total = 0;
+        for (let i = 1; i <= 10; i++) {
+            if (this.levelProgress.levels[i]) {
+                total += this.levelProgress.levels[i].stars;
+            }
+        }
+        return total;
+    }
+    
+    // Collision detection helpers
+    rectCollision(a, b) {
+        return a.x < b.x + b.width &&
+               a.x + a.width > b.x &&
+               a.y < b.y + b.height &&
+               a.y + a.height > b.y;
+    }
+    
+    circleCollision(a, b) {
+        const dx = a.x - b.x;
+        const dy = a.y - b.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < a.radius + b.radius;
+    }
+    
+    pointInRect(px, py, rect) {
+        return px >= rect.x && px <= rect.x + rect.width &&
+               py >= rect.y && py <= rect.y + rect.height;
+    }
+    
+    // Drawing helpers
+    drawSprite(emoji, x, y, size) {
+        this.ctx.font = `${size}px Arial`;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(emoji, x, y);
+    }
+    
+    drawRect(x, y, w, h, color) {
+        this.ctx.fillStyle = color;
+        this.ctx.fillRect(x, y, w, h);
+    }
+    
+    drawCircle(x, y, radius, color) {
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+        this.ctx.fill();
+    }
+    
+    drawText(text, x, y, color = 'white', size = 16, align = 'center') {
+        this.ctx.font = `${size}px Arial`;
+        this.ctx.fillStyle = color;
+        this.ctx.textAlign = align;
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(text, x, y);
+    }
+    
+    // Screen effects
+    screenShake() {
+        document.getElementById('game-container').classList.add('shake');
+        setTimeout(() => {
+            document.getElementById('game-container').classList.remove('shake');
+        }, 300);
+    }
+    
+    flashScreen(color = 'white') {
+        this.ctx.fillStyle = color;
+        this.ctx.globalAlpha = 0.5;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        this.ctx.globalAlpha = 1;
+    }
+}
+
+// Matzah powerup class (used across levels)
+class MatzahPowerup {
+    constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.size = 24;
+        this.collected = false;
+        this.floatOffset = Math.random() * Math.PI * 2;
+        this.awakenessBoost = 15;
+    }
+    
+    update(dt) {
+        this.floatOffset += dt * 3;
+    }
+    
+    render(ctx) {
+        if (this.collected) return;
+        const floatY = Math.sin(this.floatOffset) * 3;
+        ctx.font = `${this.size}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🫓', this.x, this.y + floatY);
+    }
+    
+    checkCollision(playerX, playerY, playerSize) {
+        if (this.collected) return false;
+        const dx = this.x - playerX;
+        const dy = this.y - playerY;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance < (this.size + playerSize) / 2) {
+            this.collected = true;
+            return true;
+        }
+        return false;
+    }
+}
+
+// Base Player class for top-down movement
+class TopDownPlayer {
+    constructor(x, y, emoji, speed = 150) {
+        this.x = x;
+        this.y = y;
+        this.emoji = emoji;
+        this.speed = speed;
+        this.size = 32;
+        this.direction = 'down';
+    }
+    
+    update(dt, engine) {
+        let dx = 0, dy = 0;
+        
+        if (engine.isKeyDown('left')) dx -= 1;
+        if (engine.isKeyDown('right')) dx += 1;
+        if (engine.isKeyDown('up')) dy -= 1;
+        if (engine.isKeyDown('down')) dy += 1;
+        
+        // Normalize diagonal movement
+        if (dx !== 0 && dy !== 0) {
+            dx *= 0.707;
+            dy *= 0.707;
+        }
+        
+        // Update direction
+        if (dx < 0) this.direction = 'left';
+        else if (dx > 0) this.direction = 'right';
+        else if (dy < 0) this.direction = 'up';
+        else if (dy > 0) this.direction = 'down';
+        
+        // Move
+        this.x += dx * this.speed * dt;
+        this.y += dy * this.speed * dt;
+        
+        // Keep in bounds
+        this.x = Math.max(this.size/2, Math.min(engine.width - this.size/2, this.x));
+        this.y = Math.max(this.size/2 + 50, Math.min(engine.height - this.size/2, this.y));
+    }
+    
+    render(ctx) {
+        ctx.font = `${this.size}px Arial`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.emoji, this.x, this.y);
+    }
+    
+    getRect() {
+        return {
+            x: this.x - this.size/2,
+            y: this.y - this.size/2,
+            width: this.size,
+            height: this.size
+        };
+    }
+}
+
+// Battle System for Pokemon-style fights - CANVAS BASED with animations!
+class BattleSystem {
+    constructor(playerName, playerEmoji, enemyName, enemyEmoji, ctx) {
+        this.playerName = playerName;
+        this.playerEmoji = playerEmoji;
+        this.enemyName = enemyName;
+        this.enemyEmoji = enemyEmoji;
+        this.ctx = ctx;
+        
+        this.playerHP = 150;
+        this.playerMaxHP = 150;
+        this.enemyHP = 180;
+        this.enemyMaxHP = 180;
+        
+        this.playerEffects = {};
+        this.enemyEffects = {};
+        
+        this.isPlayerTurn = true;
+        this.battleOver = false;
+        this.message = '';
+        this.waitingForAnimation = false;
+        
+        // Animation state
+        this.currentAnimation = null;
+        this.animationTime = 0;
+        this.animationDuration = 0;
+        this.animationParticles = [];
+        
+        // Character positions (on canvas)
+        this.playerPos = { x: 200, y: 280 };
+        this.enemyPos = { x: 600, y: 280 };
+        this.playerShake = 0;
+        this.enemyShake = 0;
+        
+        // Move button positions (in game area, bottom portion)
+        this.moveButtons = [];
+        this.hoveredButton = -1;
+        
+        this.moves = [
+            // Original Jewish-themed moves with animation types
+            { name: 'Cholent Throw', emoji: '🍲', effect: 'slow', damage: 15, description: 'Slows enemy 50%', anim: 'throw' },
+            { name: 'Chicken Soup', emoji: '🍜', effect: 'heal', damage: 0, heal: 30, description: 'Heal yourself', anim: 'heal' },
+            { name: 'Hora Dance', emoji: '💫', effect: 'confuse', damage: 20, description: 'Confuse enemy', anim: 'spin' },
+            { name: 'Shofar Blast', emoji: '📯', effect: 'stun', damage: 25, description: 'Stun enemy', anim: 'blast' },
+            { name: 'Gefilte Fish', emoji: '🐟', effect: 'poison', damage: 10, description: 'Poison over time', anim: 'throw' },
+            { name: 'Latke Spin', emoji: '🥔', effect: 'multi', damage: 12, hits: 3, description: 'Multi-hit attack', anim: 'multi' },
+            // The 9 Plagues of Egypt!
+            { name: 'Blood', emoji: '🩸', effect: 'bleed', damage: 15, description: 'Bleeding damage', anim: 'splash' },
+            { name: 'Frogs', emoji: '🐸', effect: 'confuse', damage: 18, description: 'Frog swarm!', anim: 'swarm' },
+            { name: 'Lice', emoji: '🦟', effect: 'itch', damage: 8, description: 'Itchy! -accuracy', anim: 'swarm' },
+            { name: 'Wild Beasts', emoji: '🦁', effect: 'multi', damage: 10, hits: 4, description: 'Beast attack!', anim: 'multi' },
+            { name: 'Pestilence', emoji: '💀', effect: 'poison', damage: 20, description: 'Deadly plague', anim: 'cloud' },
+            { name: 'Boils', emoji: '🔴', effect: 'burn', damage: 12, description: 'Painful sores!', anim: 'burst' },
+            { name: 'Hail', emoji: '🌨️', effect: 'stun', damage: 22, description: 'Fire and ice!', anim: 'hail' },
+            { name: 'Locusts', emoji: '🦗', effect: 'devour', damage: 15, description: 'Devour defenses', anim: 'swarm' },
+            { name: 'Darkness', emoji: '🌑', effect: 'blind', damage: 10, description: 'Can\'t see!', anim: 'dark' },
+            { name: 'Burning Bush', emoji: '🔥', effect: 'burn', damage: 25, description: 'Holy fire!', anim: 'fire' }
+        ];
+        
+        this.selectedMoves = [];
+        this.onBattleEnd = null;
+        
+        // Mouse tracking for button clicks
+        this.mouseX = 0;
+        this.mouseY = 0;
+        this.mouseClicked = false;
+    }
+    
+    start() {
+        // Hide HTML battle UI (we use canvas now!)
+        document.getElementById('battle-ui').classList.add('hidden');
+        
+        // Select 4 random moves for this battle
+        const shuffled = [...this.moves].sort(() => Math.random() - 0.5);
+        this.selectedMoves = shuffled.slice(0, 4);
+        
+        this.setupMoveButtons();
+        this.message = `A wild ${this.enemyName} appeared!`;
+    }
+    
+    setupMoveButtons() {
+        // Create 4 move buttons at bottom of game area (2x2 grid)
+        const buttonWidth = 180;
+        const buttonHeight = 50;
+        const startX = 50;
+        const startY = 480;
+        const gap = 10;
+        
+        this.moveButtons = this.selectedMoves.map((move, i) => ({
+            x: startX + (i % 2) * (buttonWidth + gap),
+            y: startY + Math.floor(i / 2) * (buttonHeight + gap),
+            width: buttonWidth,
+            height: buttonHeight,
+            move: move,
+            index: i
+        }));
+    }
+    
+    handleClick(mouseX, mouseY) {
+        if (!this.isPlayerTurn || this.battleOver || this.waitingForAnimation) return;
+        
+        for (const btn of this.moveButtons) {
+            if (mouseX >= btn.x && mouseX <= btn.x + btn.width &&
+                mouseY >= btn.y && mouseY <= btn.y + btn.height) {
+                this.playerAttack(btn.index);
+                return;
+            }
+        }
+    }
+    
+    updateHover(mouseX, mouseY) {
+        this.hoveredButton = -1;
+        for (const btn of this.moveButtons) {
+            if (mouseX >= btn.x && mouseX <= btn.x + btn.width &&
+                mouseY >= btn.y && mouseY <= btn.y + btn.height) {
+                this.hoveredButton = btn.index;
+                return;
+            }
+        }
+    }
+    
+    // Animation system
+    startAnimation(type, emoji, targetEnemy = true) {
+        this.currentAnimation = type;
+        this.animationTime = 0;
+        this.animationEmoji = emoji;
+        this.animationTargetEnemy = targetEnemy;
+        this.animationParticles = [];
+        
+        const targetPos = targetEnemy ? this.enemyPos : this.playerPos;
+        const sourcePos = targetEnemy ? this.playerPos : this.enemyPos;
+        
+        switch(type) {
+            case 'throw':
+                this.animationDuration = 0.5;
+                this.animationParticles.push({
+                    x: sourcePos.x, y: sourcePos.y,
+                    targetX: targetPos.x, targetY: targetPos.y,
+                    emoji: emoji, size: 40, rotation: 0
+                });
+                break;
+            case 'heal':
+                this.animationDuration = 1.0;
+                for (let i = 0; i < 8; i++) {
+                    this.animationParticles.push({
+                        x: sourcePos.x + (Math.random() - 0.5) * 60,
+                        y: sourcePos.y + 30,
+                        vy: -100 - Math.random() * 50,
+                        emoji: ['✨', '💚', '💖', '🌟'][Math.floor(Math.random() * 4)],
+                        size: 20 + Math.random() * 15,
+                        alpha: 1
+                    });
+                }
+                break;
+            case 'blast':
+                this.animationDuration = 0.8;
+                this.animationParticles.push({
+                    x: sourcePos.x, y: sourcePos.y,
+                    targetX: targetPos.x, targetY: targetPos.y,
+                    emoji: emoji, size: 50, 
+                    trail: []
+                });
+                break;
+            case 'spin':
+                this.animationDuration = 1.0;
+                for (let i = 0; i < 6; i++) {
+                    this.animationParticles.push({
+                        x: targetPos.x, y: targetPos.y,
+                        angle: (i / 6) * Math.PI * 2,
+                        radius: 0,
+                        emoji: ['💫', '⭐', '✨'][i % 3],
+                        size: 25
+                    });
+                }
+                break;
+            case 'multi':
+                this.animationDuration = 0.8;
+                for (let i = 0; i < 4; i++) {
+                    this.animationParticles.push({
+                        x: sourcePos.x, y: sourcePos.y,
+                        targetX: targetPos.x + (Math.random() - 0.5) * 40,
+                        targetY: targetPos.y + (Math.random() - 0.5) * 40,
+                        emoji: emoji, size: 30,
+                        delay: i * 0.15,
+                        active: false
+                    });
+                }
+                break;
+            case 'swarm':
+                this.animationDuration = 1.2;
+                for (let i = 0; i < 12; i++) {
+                    this.animationParticles.push({
+                        x: sourcePos.x + (Math.random() - 0.5) * 100,
+                        y: sourcePos.y + (Math.random() - 0.5) * 100,
+                        targetX: targetPos.x + (Math.random() - 0.5) * 60,
+                        targetY: targetPos.y + (Math.random() - 0.5) * 60,
+                        emoji: emoji, size: 20 + Math.random() * 10,
+                        delay: Math.random() * 0.3,
+                        wiggle: Math.random() * Math.PI * 2
+                    });
+                }
+                break;
+            case 'splash':
+                this.animationDuration = 0.7;
+                for (let i = 0; i < 15; i++) {
+                    const angle = (i / 15) * Math.PI * 2;
+                    this.animationParticles.push({
+                        x: targetPos.x, y: targetPos.y,
+                        vx: Math.cos(angle) * (80 + Math.random() * 40),
+                        vy: Math.sin(angle) * (80 + Math.random() * 40),
+                        emoji: emoji, size: 15 + Math.random() * 10,
+                        alpha: 1
+                    });
+                }
+                break;
+            case 'fire':
+                this.animationDuration = 1.0;
+                for (let i = 0; i < 20; i++) {
+                    this.animationParticles.push({
+                        x: targetPos.x + (Math.random() - 0.5) * 60,
+                        y: targetPos.y + 30,
+                        vy: -80 - Math.random() * 60,
+                        vx: (Math.random() - 0.5) * 30,
+                        emoji: ['🔥', '🔥', '💥', '✨'][Math.floor(Math.random() * 4)],
+                        size: 20 + Math.random() * 20,
+                        alpha: 1
+                    });
+                }
+                break;
+            case 'hail':
+                this.animationDuration = 1.0;
+                for (let i = 0; i < 15; i++) {
+                    this.animationParticles.push({
+                        x: targetPos.x - 100 + Math.random() * 200,
+                        y: 50 + Math.random() * 50,
+                        vy: 200 + Math.random() * 100,
+                        emoji: ['🌨️', '❄️', '🔥'][Math.floor(Math.random() * 3)],
+                        size: 20 + Math.random() * 15,
+                        delay: Math.random() * 0.5
+                    });
+                }
+                break;
+            case 'dark':
+                this.animationDuration = 1.2;
+                this.animationParticles.push({
+                    x: 400, y: 300, radius: 0, maxRadius: 500
+                });
+                break;
+            case 'cloud':
+                this.animationDuration = 1.0;
+                for (let i = 0; i < 8; i++) {
+                    this.animationParticles.push({
+                        x: targetPos.x + (Math.random() - 0.5) * 80,
+                        y: targetPos.y + (Math.random() - 0.5) * 80,
+                        size: 0, maxSize: 40 + Math.random() * 30,
+                        emoji: ['💀', '☠️', '💨'][Math.floor(Math.random() * 3)],
+                        alpha: 0
+                    });
+                }
+                break;
+            case 'burst':
+                this.animationDuration = 0.6;
+                for (let i = 0; i < 10; i++) {
+                    const angle = (i / 10) * Math.PI * 2;
+                    this.animationParticles.push({
+                        x: targetPos.x, y: targetPos.y,
+                        vx: Math.cos(angle) * 120,
+                        vy: Math.sin(angle) * 120,
+                        emoji: emoji, size: 25,
+                        alpha: 1
+                    });
+                }
+                break;
+        }
+    }
+    
+    updateAnimation(dt) {
+        if (!this.currentAnimation) return;
+        
+        this.animationTime += dt;
+        const progress = Math.min(1, this.animationTime / this.animationDuration);
+        
+        const targetPos = this.animationTargetEnemy ? this.enemyPos : this.playerPos;
+        const sourcePos = this.animationTargetEnemy ? this.playerPos : this.enemyPos;
+        
+        switch(this.currentAnimation) {
+            case 'throw':
+            case 'blast':
+                for (const p of this.animationParticles) {
+                    const t = this.easeOutQuad(progress);
+                    p.x = p.x + (p.targetX - sourcePos.x) * t * 0.1;
+                    p.y = p.y + (p.targetY - sourcePos.y) * t * 0.1;
+                    p.rotation = (p.rotation || 0) + dt * 10;
+                    if (progress > 0.8) {
+                        if (this.animationTargetEnemy) this.enemyShake = 5;
+                        else this.playerShake = 5;
+                    }
+                }
+                break;
+            case 'heal':
+                for (const p of this.animationParticles) {
+                    p.y += p.vy * dt;
+                    p.alpha = 1 - progress;
+                }
+                break;
+            case 'spin':
+                for (const p of this.animationParticles) {
+                    p.angle += dt * 8;
+                    p.radius = 30 + progress * 50;
+                }
+                if (progress > 0.5) {
+                    if (this.animationTargetEnemy) this.enemyShake = 3;
+                    else this.playerShake = 3;
+                }
+                break;
+            case 'multi':
+                for (const p of this.animationParticles) {
+                    if (this.animationTime > p.delay && !p.active) {
+                        p.active = true;
+                        p.startX = sourcePos.x;
+                        p.startY = sourcePos.y;
+                    }
+                    if (p.active) {
+                        const localProgress = Math.min(1, (this.animationTime - p.delay) / 0.2);
+                        p.x = p.startX + (p.targetX - p.startX) * this.easeOutQuad(localProgress);
+                        p.y = p.startY + (p.targetY - p.startY) * this.easeOutQuad(localProgress);
+                        if (localProgress > 0.8) {
+                            if (this.animationTargetEnemy) this.enemyShake = 4;
+                            else this.playerShake = 4;
+                        }
+                    }
+                }
+                break;
+            case 'swarm':
+                for (const p of this.animationParticles) {
+                    if (this.animationTime > p.delay) {
+                        const localProgress = Math.min(1, (this.animationTime - p.delay) / 0.8);
+                        const startX = sourcePos.x + (Math.random() - 0.5) * 20;
+                        const startY = sourcePos.y + (Math.random() - 0.5) * 20;
+                        p.x += (p.targetX - p.x) * 0.05;
+                        p.y += (p.targetY - p.y) * 0.05;
+                        p.wiggle += dt * 15;
+                        p.x += Math.sin(p.wiggle) * 2;
+                    }
+                }
+                if (progress > 0.5) {
+                    if (this.animationTargetEnemy) this.enemyShake = 2;
+                }
+                break;
+            case 'splash':
+            case 'burst':
+                for (const p of this.animationParticles) {
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.alpha = 1 - progress;
+                }
+                if (progress < 0.3) {
+                    if (this.animationTargetEnemy) this.enemyShake = 6;
+                    else this.playerShake = 6;
+                }
+                break;
+            case 'fire':
+                for (const p of this.animationParticles) {
+                    p.x += p.vx * dt;
+                    p.y += p.vy * dt;
+                    p.vy -= 50 * dt; // Float up
+                    p.alpha = 1 - progress * 0.8;
+                    p.size *= 0.99;
+                }
+                if (progress > 0.2) {
+                    if (this.animationTargetEnemy) this.enemyShake = 4;
+                }
+                break;
+            case 'hail':
+                for (const p of this.animationParticles) {
+                    if (this.animationTime > p.delay) {
+                        p.y += p.vy * dt;
+                        if (p.y > targetPos.y) {
+                            if (this.animationTargetEnemy) this.enemyShake = 3;
+                            else this.playerShake = 3;
+                        }
+                    }
+                }
+                break;
+            case 'dark':
+                for (const p of this.animationParticles) {
+                    if (progress < 0.5) {
+                        p.radius = p.maxRadius * (progress * 2);
+                    } else {
+                        p.radius = p.maxRadius * (1 - (progress - 0.5) * 2);
+                    }
+                }
+                if (progress > 0.3 && progress < 0.7) {
+                    if (this.animationTargetEnemy) this.enemyShake = 2;
+                }
+                break;
+            case 'cloud':
+                for (const p of this.animationParticles) {
+                    if (progress < 0.5) {
+                        p.size = p.maxSize * (progress * 2);
+                        p.alpha = progress * 2;
+                    } else {
+                        p.alpha = 1 - (progress - 0.5) * 2;
+                    }
+                }
+                if (progress > 0.3) {
+                    if (this.animationTargetEnemy) this.enemyShake = 2;
+                }
+                break;
+        }
+        
+        // Decay shake
+        this.playerShake *= 0.9;
+        this.enemyShake *= 0.9;
+        
+        if (progress >= 1) {
+            this.currentAnimation = null;
+            this.animationParticles = [];
+        }
+    }
+    
+    renderAnimation(ctx) {
+        if (!this.currentAnimation) return;
+        
+        ctx.save();
+        
+        switch(this.currentAnimation) {
+            case 'dark':
+                for (const p of this.animationParticles) {
+                    ctx.fillStyle = `rgba(0, 0, 0, 0.8)`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                break;
+            default:
+                for (const p of this.animationParticles) {
+                    if (p.delay && this.animationTime < p.delay) continue;
+                    if (p.active === false) continue;
+                    
+                    ctx.globalAlpha = p.alpha !== undefined ? p.alpha : 1;
+                    ctx.font = `${p.size}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    
+                    let x = p.x, y = p.y;
+                    if (p.angle !== undefined && p.radius !== undefined) {
+                        const targetPos = this.animationTargetEnemy ? this.enemyPos : this.playerPos;
+                        x = targetPos.x + Math.cos(p.angle) * p.radius;
+                        y = targetPos.y + Math.sin(p.angle) * p.radius;
+                    }
+                    
+                    if (p.rotation) {
+                        ctx.save();
+                        ctx.translate(x, y);
+                        ctx.rotate(p.rotation);
+                        ctx.fillText(p.emoji, 0, 0);
+                        ctx.restore();
+                    } else {
+                        ctx.fillText(p.emoji, x, y);
+                    }
+                }
+                break;
+        }
+        
+        ctx.restore();
+    }
+    
+    easeOutQuad(t) {
+        return t * (2 - t);
+    }
+    
+    update(dt) {
+        this.updateAnimation(dt);
+    }
+    
+    render(ctx) {
+        // Draw battle arena background (bottom portion for UI)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(0, 460, 800, 140);
+        
+        // Draw VS text
+        ctx.font = 'bold 40px Arial';
+        ctx.fillStyle = '#ff4444';
+        ctx.textAlign = 'center';
+        ctx.fillText('VS', 400, 300);
+        
+        // Draw player (left side)
+        const playerShakeX = (Math.random() - 0.5) * this.playerShake;
+        const playerShakeY = (Math.random() - 0.5) * this.playerShake;
+        ctx.font = '80px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.playerEmoji, this.playerPos.x + playerShakeX, this.playerPos.y + playerShakeY);
+        
+        // Draw enemy (right side)
+        const enemyShakeX = (Math.random() - 0.5) * this.enemyShake;
+        const enemyShakeY = (Math.random() - 0.5) * this.enemyShake;
+        ctx.fillText(this.enemyEmoji, this.enemyPos.x + enemyShakeX, this.enemyPos.y + enemyShakeY);
+        
+        // Draw HP bars
+        this.drawHPBar(ctx, 50, 180, this.playerName, this.playerHP, this.playerMaxHP, this.playerEmoji);
+        this.drawHPBar(ctx, 550, 180, this.enemyName, this.enemyHP, this.enemyMaxHP, this.enemyEmoji);
+        
+        // Draw animations
+        this.renderAnimation(ctx);
+        
+        // Draw move buttons
+        if (this.isPlayerTurn && !this.waitingForAnimation && !this.battleOver) {
+            this.renderMoveButtons(ctx);
+        }
+        
+        // Draw message
+        ctx.font = 'bold 20px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'center';
+        ctx.fillText(this.message, 600, 520);
+    }
+    
+    drawHPBar(ctx, x, y, name, hp, maxHP, emoji) {
+        // Background
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+        ctx.fillRect(x, y, 200, 50);
+        ctx.strokeStyle = '#ffd700';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x, y, 200, 50);
+        
+        // Name
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = 'white';
+        ctx.textAlign = 'left';
+        ctx.fillText(`${emoji} ${name}`, x + 10, y + 20);
+        
+        // HP bar background
+        ctx.fillStyle = '#333';
+        ctx.fillRect(x + 10, y + 30, 180, 12);
+        
+        // HP bar fill
+        const hpPercent = Math.max(0, hp / maxHP);
+        const hpColor = hpPercent > 0.5 ? '#4CAF50' : hpPercent > 0.2 ? '#ff9800' : '#f44336';
+        ctx.fillStyle = hpColor;
+        ctx.fillRect(x + 10, y + 30, 180 * hpPercent, 12);
+    }
+    
+    renderMoveButtons(ctx) {
+        for (let i = 0; i < this.moveButtons.length; i++) {
+            const btn = this.moveButtons[i];
+            const isHovered = this.hoveredButton === i;
+            
+            // Button background
+            ctx.fillStyle = isHovered ? '#4a6fa5' : '#2c3e50';
+            ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+            
+            // Button border
+            ctx.strokeStyle = isHovered ? '#ffd700' : '#5a7a9a';
+            ctx.lineWidth = isHovered ? 3 : 2;
+            ctx.strokeRect(btn.x, btn.y, btn.width, btn.height);
+            
+            // Move emoji and name
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${btn.move.emoji} ${btn.move.name}`, btn.x + btn.width/2, btn.y + 20);
+            
+            // Description
+            ctx.font = '12px Arial';
+            ctx.fillStyle = '#aaa';
+            ctx.fillText(btn.move.description, btn.x + btn.width/2, btn.y + 38);
+        }
+        
+        // "Choose your move!" text
+        ctx.font = 'bold 18px Arial';
+        ctx.fillStyle = '#ffd700';
+        ctx.textAlign = 'center';
+        ctx.fillText('Choose your move!', 600, 560);
+    }
+    
+    async playerAttack(moveIndex) {
+        if (!this.isPlayerTurn || this.battleOver || this.waitingForAnimation) return;
+        
+        const move = this.selectedMoves[moveIndex];
+        this.waitingForAnimation = true;
+        
+        this.message = `${this.playerName} used ${move.name}!`;
+        
+        // Announce the move name!
+        if (window.audioManager) {
+            window.audioManager.announceMove(move.name);
+        }
+        
+        // Play animation!
+        this.startAnimation(move.anim, move.emoji, true);
+        
+        await this.delay(this.animationDuration * 1000 + 300);
+        
+        // Apply move effects
+        if (move.effect === 'heal') {
+            this.playerHP = Math.min(this.playerMaxHP, this.playerHP + move.heal);
+            this.message = `${this.playerName} healed ${move.heal} HP!`;
+            if (window.audioManager) {
+                window.audioManager.playBattleSound('heal');
+            }
+        } else if (move.effect === 'shield') {
+            this.playerEffects.shield = true;
+            this.message = `${this.playerName} raised the Staff of Moses! 🪄`;
+        } else if (move.effect === 'multi') {
+            let totalDamage = 0;
+            for (let i = 0; i < move.hits; i++) {
+                totalDamage += move.damage;
+            }
+            this.enemyHP -= totalDamage;
+            this.message = `Hit ${move.hits} times for ${totalDamage} damage!`;
+            if (window.audioManager) {
+                window.audioManager.playBattlePain();
+            }
+        } else {
+            this.enemyHP -= move.damage;
+            this.message = `Dealt ${move.damage} damage!`;
+            if (window.audioManager) {
+                window.audioManager.playBattlePain();
+            }
+            
+            if (move.effect === 'slow') this.enemyEffects.slow = 2;
+            if (move.effect === 'sleep') this.enemyEffects.sleep = 1;
+            if (move.effect === 'confuse') this.enemyEffects.confuse = 2;
+            if (move.effect === 'stun') this.enemyEffects.stun = 1;
+            if (move.effect === 'poison') this.enemyEffects.poison = 3;
+            if (move.effect === 'bleed') this.enemyEffects.bleed = 3;
+            if (move.effect === 'burn') this.enemyEffects.burn = 2;
+            if (move.effect === 'blind') this.enemyEffects.blind = 2;
+            if (move.effect === 'itch') this.enemyEffects.itch = 2;
+            if (move.effect === 'devour') {
+                this.enemyEffects.devour = true;
+                this.message += ' Defenses devoured!';
+            }
+        }
+        
+        await this.delay(800);
+        
+        // Check if enemy defeated
+        if (this.enemyHP <= 0) {
+            this.enemyHP = 0;
+            this.message = `${this.enemyName} was defeated!`;
+            this.battleOver = true;
+            await this.delay(1500);
+            this.endBattle(true);
+            return;
+        }
+        
+        // Enemy turn
+        this.isPlayerTurn = false;
+        await this.enemyTurn();
+    }
+    
+    async enemyTurn() {
+        // Check status effects
+        if (this.enemyEffects.sleep > 0) {
+            this.message = `${this.enemyName} is fast asleep!`;
+            this.enemyEffects.sleep--;
+            await this.delay(1000);
+            this.endTurn();
+            return;
+        }
+        
+        if (this.enemyEffects.stun > 0) {
+            this.message = `${this.enemyName} is stunned!`;
+            this.enemyEffects.stun--;
+            await this.delay(1000);
+            this.endTurn();
+            return;
+        }
+        
+        // Apply damage over time effects
+        if (this.enemyEffects.poison > 0) {
+            this.enemyHP -= 5;
+            this.message = `${this.enemyName} took poison damage! 💀`;
+            this.enemyEffects.poison--;
+            this.enemyShake = 4;
+            await this.delay(800);
+            
+            if (this.enemyHP <= 0) {
+                this.enemyHP = 0;
+                this.message = `${this.enemyName} was defeated!`;
+                this.battleOver = true;
+                await this.delay(1500);
+                this.endBattle(true);
+                return;
+            }
+        }
+        
+        if (this.enemyEffects.bleed > 0) {
+            this.enemyHP -= 6;
+            this.message = `${this.enemyName} is bleeding! 🩸`;
+            this.enemyEffects.bleed--;
+            this.enemyShake = 3;
+            await this.delay(800);
+            
+            if (this.enemyHP <= 0) {
+                this.enemyHP = 0;
+                this.message = `${this.enemyName} was defeated!`;
+                this.battleOver = true;
+                await this.delay(1500);
+                this.endBattle(true);
+                return;
+            }
+        }
+        
+        if (this.enemyEffects.burn > 0) {
+            this.enemyHP -= 8;
+            this.message = `${this.enemyName} is burning! 🔥`;
+            this.enemyEffects.burn--;
+            this.enemyShake = 4;
+            await this.delay(800);
+            
+            if (this.enemyHP <= 0) {
+                this.enemyHP = 0;
+                this.message = `${this.enemyName} was defeated!`;
+                this.battleOver = true;
+                await this.delay(1500);
+                this.endBattle(true);
+                return;
+            }
+        }
+        
+        // Enemy attack with animation
+        const enemyMoves = [
+            { name: 'Scratch', emoji: '💥' },
+            { name: 'Bite', emoji: '🦷' },
+            { name: 'Hiss', emoji: '😾' },
+            { name: 'Pounce', emoji: '🐾' }
+        ];
+        const enemyMove = enemyMoves[Math.floor(Math.random() * enemyMoves.length)];
+        let damage = 15 + Math.floor(Math.random() * 10);
+        
+        if (this.enemyEffects.devour) damage = Math.floor(damage * 0.6);
+        if (this.enemyEffects.slow > 0) {
+            damage = Math.floor(damage * 0.5);
+            this.enemyEffects.slow--;
+        }
+        
+        // Check blind/itch effects
+        if (this.enemyEffects.blind > 0) {
+            if (Math.random() < 0.5) {
+                this.message = `${this.enemyName} can't see in the darkness! 🌑`;
+                this.enemyEffects.blind--;
+                await this.delay(1000);
+                this.endTurn();
+                return;
+            }
+            this.enemyEffects.blind--;
+        }
+        
+        if (this.enemyEffects.itch > 0) {
+            if (Math.random() < 0.4) {
+                this.message = `${this.enemyName} is too itchy to attack! 🦟`;
+                this.enemyHP -= 3;
+                this.enemyEffects.itch--;
+                await this.delay(1000);
+                this.endTurn();
+                return;
+            }
+            this.enemyEffects.itch--;
+        }
+        
+        if (this.enemyEffects.confuse > 0) {
+            if (Math.random() < 0.5) {
+                this.message = `${this.enemyName} hurt itself in confusion! 🐸`;
+                this.enemyHP -= 10;
+                this.enemyShake = 5;
+                this.enemyEffects.confuse--;
+                await this.delay(1000);
+                this.endTurn();
+                return;
+            }
+            this.enemyEffects.confuse--;
+        }
+        
+        this.message = `${this.enemyName} used ${enemyMove.name}!`;
+        
+        // Enemy attack animation
+        this.startAnimation('throw', enemyMove.emoji, false);
+        await this.delay(600);
+        
+        // Check shield
+        if (this.playerEffects.shield) {
+            this.message = `Staff of Moses blocked the attack! 🪄✨`;
+            this.playerEffects.shield = false;
+            if (window.audioManager) {
+                window.audioManager.playBattleSound('block');
+            }
+        } else {
+            this.playerHP -= damage;
+            this.message = `${this.playerName} took ${damage} damage!`;
+            this.playerShake = 6;
+            if (window.audioManager) {
+                window.audioManager.playBattlePain();
+            }
+        }
+        
+        await this.delay(1000);
+        
+        // Check if player defeated
+        if (this.playerHP <= 0) {
+            this.playerHP = 0;
+            this.message = `${this.playerName} was defeated!`;
+            this.battleOver = true;
+            await this.delay(1500);
+            this.endBattle(false);
+            return;
+        }
+        
+        this.endTurn();
+    }
+    
+    endTurn() {
+        this.isPlayerTurn = true;
+        this.waitingForAnimation = false;
+        
+        // Reshuffle moves each turn!
+        const shuffled = [...this.moves].sort(() => Math.random() - 0.5);
+        this.selectedMoves = shuffled.slice(0, 4);
+        this.setupMoveButtons();
+        
+        this.message = 'Choose your move!';
+    }
+    
+    endBattle(playerWon) {
+        if (this.onBattleEnd) {
+            this.onBattleEnd(playerWon);
+        }
+    }
+    
+    delay(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+}
+
+// Export engine
+window.GameEngine = GameEngine;
+window.MatzahPowerup = MatzahPowerup;
+window.TopDownPlayer = TopDownPlayer;
+window.BattleSystem = BattleSystem;

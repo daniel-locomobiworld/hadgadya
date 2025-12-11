@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>חד גדיא - Had Gadya: The Passover Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Verse Display During Gameplay (above game) -->
+    <div id="gameplay-verse"></div>
+    
+    <div id="game-container">
+        <canvas id="gameCanvas" width="800" height="600"></canvas>
+        
+        <!-- HUD Overlay -->
+        <div id="hud">
+            <div id="awakeness-container">
+                <span>😴 Awakeness:</span>
+                <div id="awakeness-bar">
+                    <div id="awakeness-fill"></div>
+                </div>
+                <span id="awakeness-percent">100%</span>
+            </div>
+            <div id="timers">
+                <div id="level-timer">🎯 Level: <span id="level-time-display">00:00.00</span></div>
+                <div id="total-timer">⏱️ Total: <span id="time-display">00:00.00</span></div>
+            </div>
+            <div id="level-display">Level: <span id="current-level">1</span>/10</div>
+        </div>
+    </div>
+
+    <!-- Game Controls (Outside Play Area) -->
+    <div id="game-controls" class="hidden">
+        <button id="home-btn" class="control-btn">🏠 Home</button>
+        <button id="pause-btn" class="control-btn">⏸️ Pause</button>
+        <button id="reset-btn" class="control-btn">🔄 Reset Level</button>
+    </div>
+
+    <!-- Main Menu -->
+    <div id="main-menu" class="menu-screen">
+        <h1>🐐 חד גדיא 🐐</h1>
+        <h2>Had Gadya: The Passover Game</h2>
+        <p class="subtitle">Beat all 10 levels before you fall asleep at the Seder!</p>
+        <div class="menu-buttons">
+            <button id="start-game-btn" class="menu-btn">🎮 Start Game</button>
+            <button id="level-select-btn" class="menu-btn">📋 Level Select</button>
+            <button id="how-to-play-btn" class="menu-btn">❓ How To Play</button>
+        </div>
+        <p class="credits">A Passover Game for the Whole Family 🍷</p>
+    </div>
+
+    <!-- Level Select -->
+    <div id="level-select" class="menu-screen hidden">
+        <h2>📋 Level Select</h2>
+        <div id="level-grid"></div>
+        <button id="back-to-menu-btn" class="menu-btn">⬅️ Back to Menu</button>
+    </div>
+
+    <!-- How To Play -->
+    <div id="how-to-play" class="menu-screen hidden">
+        <h2>❓ How To Play</h2>
+        <div class="instructions">
+            <p>🎯 <strong>Goal:</strong> Complete all 10 levels of Had Gadya before your Awakeness runs out!</p>
+            <p>⌨️ <strong>Controls:</strong> Arrow keys or WASD to move. Space/Enter for actions.</p>
+            <p>😴 <strong>Awakeness:</strong> Your awakeness slowly decreases. Find 🫓 Matzah to stay awake!</p>
+            <p>⭐ <strong>Stars:</strong> Complete levels quickly to earn up to 3 stars!</p>
+            <p>🏆 <strong>Speedrun:</strong> Try to beat all levels as fast as possible!</p>
+        </div>
+        <button id="back-from-help-btn" class="menu-btn">⬅️ Back to Menu</button>
+    </div>
+
+    <!-- Level Intro -->
+    <div id="level-intro" class="menu-screen hidden">
+        <h2 id="level-title"></h2>
+        <div id="level-verse" class="verse-box"></div>
+        <p id="level-description"></p>
+        <p id="level-instructions"></p>
+        <button id="start-level-btn" class="menu-btn">▶️ Start Level</button>
+    </div>
+
+    <!-- Level Complete -->
+    <div id="level-complete" class="menu-screen hidden">
+        <h2>🎉 Level Complete!</h2>
+        <div id="level-stats">
+            <p>Time: <span id="complete-time"></span></p>
+            <p>Stars: <span id="complete-stars"></span></p>
+        </div>
+        <div class="menu-buttons">
+            <button id="next-level-btn" class="menu-btn">➡️ Next Level</button>
+            <button id="replay-level-btn" class="menu-btn">🔄 Replay</button>
+            <button id="complete-to-menu-btn" class="menu-btn">🏠 Menu</button>
+        </div>
+    </div>
+
+    <!-- Game Over (Fell Asleep) -->
+    <div id="game-over" class="menu-screen hidden">
+        <h2>😴💤 You Fell Asleep!</h2>
+        <p id="game-over-reason" style="font-size: 1.1em; color: #ffcc00; margin: 15px 0;">The Seder was just too long...</p>
+        <p>Total Time: <span id="game-over-time"></span></p>
+        <div class="menu-buttons">
+            <button id="retry-btn" class="menu-btn">🔄 Try Again</button>
+            <button id="game-over-menu-btn" class="menu-btn">🏠 Menu</button>
+        </div>
+    </div>
+
+    <!-- Victory Screen -->
+    <div id="victory" class="menu-screen hidden">
+        <h2>🏆 חג שמח! You Won! 🏆</h2>
+        <p>You completed the Had Gadya before falling asleep!</p>
+        <p>Total Time: <span id="victory-time"></span></p>
+        <p>Total Stars: <span id="victory-stars"></span>/30</p>
+        <div class="menu-buttons">
+            <button id="victory-menu-btn" class="menu-btn">🏠 Menu</button>
+        </div>
+    </div>
+
+    <!-- Battle UI (for Pokemon-style battles) -->
+    <div id="battle-ui" class="hidden">
+        <div id="player-battle-info" class="battle-info">
+            <span id="player-name">Player</span>
+            <div class="hp-bar"><div id="player-hp"></div></div>
+        </div>
+        <div id="enemy-battle-info" class="battle-info">
+            <span id="enemy-name">Enemy</span>
+            <div class="hp-bar"><div id="enemy-hp"></div></div>
+        </div>
+        <div id="battle-menu">
+            <div id="battle-moves"></div>
+            <div id="battle-message"></div>
+        </div>
+    </div>
+
+    <script src="js/audio.js"></script>
+    <script src="js/engine.js"></script>
+    <script src="js/vs-splash.js"></script>
+    <script src="js/levels/level1.js"></script>
+    <script src="js/levels/level2.js"></script>
+    <script src="js/levels/level3.js"></script>
+    <script src="js/levels/level4.js"></script>
+    <script src="js/levels/level5.js"></script>
+    <script src="js/levels/level6.js"></script>
+    <script src="js/levels/level7.js"></script>
+    <script src="js/levels/level8.js"></script>
+    <script src="js/levels/level9.js"></script>
+    <script src="js/levels/level10.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>

@@ -1,0 +1,470 @@
+{
+  "verses": {
+    "1": {
+      "file": "verses_1_ddf430bf66b2.mp3",
+      "hash": "ddf430bf66b2",
+      "text": "One little goat, one little goat. Which my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "2": {
+      "file": "verses_2_cc85ee684ed4.mp3",
+      "hash": "cc85ee684ed4",
+      "text": "Then came a cat and ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "3": {
+      "file": "verses_3_978129b2f0b4.mp3",
+      "hash": "978129b2f0b4",
+      "text": "Then came a dog and bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "4": {
+      "file": "verses_4_67f0941dd114.mp3",
+      "hash": "67f0941dd114",
+      "text": "Then came a stick and beat the dog, that bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "5": {
+      "file": "verses_5_a15d8cbd2fdb.mp3",
+      "hash": "a15d8cbd2fdb",
+      "text": "Then came fire and burnt the stick, that beat the dog, that bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "6": {
+      "file": "verses_6_0aeabad940c3.mp3",
+      "hash": "0aeabad940c3",
+      "text": "Then came water and quenched the fire, that burnt the stick, that beat the dog, that bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "7": {
+      "file": "verses_7_61ade519c6bb.mp3",
+      "hash": "61ade519c6bb",
+      "text": "Then came an ox and drank the water, that quenched the fire, that burnt the stick, that beat the dog, that bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "8": {
+      "file": "verses_8_44b70a67b270.mp3",
+      "hash": "44b70a67b270",
+      "text": "Then came a slaughterer and slaughtered the ox, that drank the water, that quenched the fire, that burnt the stick, that beat the dog, that bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "9": {
+      "file": "verses_9_193dbf68d154.mp3",
+      "hash": "193dbf68d154",
+      "text": "Then came the Angel of Death and slew the slaughterer, that slaughtered the ox, that drank the water, that quenched the fire, that burnt the stick, that beat the dog, that bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    },
+    "10": {
+      "file": "verses_10_dfcdbdfd4c06.mp3",
+      "hash": "dfcdbdfd4c06",
+      "text": "Then came the Holy One, blessed be He, and destroyed the Angel of Death, that slew the slaughterer, that slaughtered the ox, that drank the water, that quenched the fire, that burnt the stick, that beat the dog, that bit the cat, that ate the goat, that my father bought for two zuzim. One little goat, one little goat.",
+      "voice": "spuds"
+    }
+  },
+  "victory": {
+    "1": {
+      "file": "victory_1_b06e2485a17f.mp3",
+      "hash": "b06e2485a17f",
+      "text": "FATHER BOUGHT THE GOAT FOR TWO ZUZIM!",
+      "voice": "brock"
+    },
+    "2": {
+      "file": "victory_2_06929c3325ce.mp3",
+      "hash": "06929c3325ce",
+      "text": "THE CAT ATE THE GOAT!",
+      "voice": "brock"
+    },
+    "3": {
+      "file": "victory_3_8ac3a21a8998.mp3",
+      "hash": "8ac3a21a8998",
+      "text": "THE DOG BIT THE CAT!",
+      "voice": "brock"
+    },
+    "4": {
+      "file": "victory_4_b2a8288c7865.mp3",
+      "hash": "b2a8288c7865",
+      "text": "THE STICK BEAT THE DOG!",
+      "voice": "brock"
+    },
+    "5": {
+      "file": "victory_5_292f7761d586.mp3",
+      "hash": "292f7761d586",
+      "text": "FIRE BURNT THE STICK!",
+      "voice": "brock"
+    },
+    "6": {
+      "file": "victory_6_849be10d56ed.mp3",
+      "hash": "849be10d56ed",
+      "text": "WATER QUENCHED THE FIRE!",
+      "voice": "brock"
+    },
+    "7": {
+      "file": "victory_7_4fc61c8aa8b1.mp3",
+      "hash": "4fc61c8aa8b1",
+      "text": "THE OX DRANK THE WATER!",
+      "voice": "brock"
+    },
+    "8": {
+      "file": "victory_8_7acf2ed7d724.mp3",
+      "hash": "7acf2ed7d724",
+      "text": "THE BUTCHER SLAUGHTERED THE OX!",
+      "voice": "brock"
+    },
+    "9": {
+      "file": "victory_9_6d609fb303e6.mp3",
+      "hash": "6d609fb303e6",
+      "text": "THE ANGEL OF DEATH KILLED THE BUTCHER!",
+      "voice": "brock"
+    },
+    "10": {
+      "file": "victory_10_c6bc3bc417a5.mp3",
+      "hash": "c6bc3bc417a5",
+      "text": "THE HOLY ONE, BLESSED BE HE, DESTROYED THE ANGEL OF DEATH! ENJOY YOUR SEDER!",
+      "voice": "brock"
+    }
+  },
+  "animals": {
+    "goat1": {
+      "file": "animals_goat1_4c43a3872325.mp3",
+      "hash": "4c43a3872325",
+      "text": "Baaaa! Baaaa!",
+      "voice": "funny"
+    },
+    "goat2": {
+      "file": "animals_goat2_db157e379382.mp3",
+      "hash": "db157e379382",
+      "text": "Meeeeeh!",
+      "voice": "funny"
+    },
+    "goat3": {
+      "file": "animals_goat3_6a95cf89a2a9.mp3",
+      "hash": "6a95cf89a2a9",
+      "text": "Baaaa baaaa baaaa!",
+      "voice": "funny"
+    },
+    "cat1": {
+      "file": "animals_cat1_f31eaec9ef9d.mp3",
+      "hash": "f31eaec9ef9d",
+      "text": "Meooow!",
+      "voice": "funny"
+    },
+    "cat2": {
+      "file": "animals_cat2_79cd374df756.mp3",
+      "hash": "79cd374df756",
+      "text": "Hissss!",
+      "voice": "funny"
+    },
+    "cat3": {
+      "file": "animals_cat3_758c6f35c002.mp3",
+      "hash": "758c6f35c002",
+      "text": "Mrrrow!",
+      "voice": "funny"
+    },
+    "dog1": {
+      "file": "animals_dog1_03e6348d8ea9.mp3",
+      "hash": "03e6348d8ea9",
+      "text": "Woof woof woof!",
+      "voice": "funny"
+    },
+    "dog2": {
+      "file": "animals_dog2_f9694f45829f.mp3",
+      "hash": "f9694f45829f",
+      "text": "Arf arf!",
+      "voice": "funny"
+    },
+    "dog3": {
+      "file": "animals_dog3_b231c20bea21.mp3",
+      "hash": "b231c20bea21",
+      "text": "Grrrr woof!",
+      "voice": "funny"
+    }
+  },
+  "battle": {
+    "attack1": {
+      "file": "battle_attack1_a201b7674d3b.mp3",
+      "hash": "a201b7674d3b",
+      "text": "Pow!",
+      "voice": "funny"
+    },
+    "attack2": {
+      "file": "battle_attack2_cc1f46f98c17.mp3",
+      "hash": "cc1f46f98c17",
+      "text": "Wham!",
+      "voice": "funny"
+    },
+    "attack3": {
+      "file": "battle_attack3_4dab4a6c56df.mp3",
+      "hash": "4dab4a6c56df",
+      "text": "Kaboom!",
+      "voice": "funny"
+    },
+    "attack4": {
+      "file": "battle_attack4_dc2abfac4a6f.mp3",
+      "hash": "dc2abfac4a6f",
+      "text": "Oof!",
+      "voice": "funny"
+    },
+    "heal1": {
+      "file": "battle_heal1_f6e50f61c1ec.mp3",
+      "hash": "f6e50f61c1ec",
+      "text": "Ahhhhh!",
+      "voice": "funny"
+    },
+    "heal2": {
+      "file": "battle_heal2_85c49e98704c.mp3",
+      "hash": "85c49e98704c",
+      "text": "Much better!",
+      "voice": "funny"
+    },
+    "heal3": {
+      "file": "battle_heal3_7e8ca6fad522.mp3",
+      "hash": "7e8ca6fad522",
+      "text": "L'chaim!",
+      "voice": "funny"
+    },
+    "shield1": {
+      "file": "battle_shield1_7e3e97db6c62.mp3",
+      "hash": "7e3e97db6c62",
+      "text": "Protected!",
+      "voice": "funny"
+    },
+    "shield2": {
+      "file": "battle_shield2_e53daebd37ce.mp3",
+      "hash": "e53daebd37ce",
+      "text": "Baruch Hashem!",
+      "voice": "funny"
+    },
+    "pain1": {
+      "file": "battle_pain1_df04d87a4857.mp3",
+      "hash": "df04d87a4857",
+      "text": "Oy vey!",
+      "voice": "funny"
+    },
+    "pain2": {
+      "file": "battle_pain2_a356f3b42610.mp3",
+      "hash": "a356f3b42610",
+      "text": "Ow ow ow!",
+      "voice": "funny"
+    },
+    "pain3": {
+      "file": "battle_pain3_eacd092fac5c.mp3",
+      "hash": "eacd092fac5c",
+      "text": "That hurts!",
+      "voice": "funny"
+    }
+  },
+  "moves": {
+    "move1": {
+      "file": "moves_move1_375f5110e7e0.mp3",
+      "hash": "375f5110e7e0",
+      "text": "MATZAH SLAP!",
+      "voice": "brock"
+    },
+    "move2": {
+      "file": "moves_move2_a80754542649.mp3",
+      "hash": "a80754542649",
+      "text": "SHOFAR BLAST!",
+      "voice": "brock"
+    },
+    "move3": {
+      "file": "moves_move3_f78aa5902d9e.mp3",
+      "hash": "f78aa5902d9e",
+      "text": "DREIDEL SPIN!",
+      "voice": "brock"
+    },
+    "move4": {
+      "file": "moves_move4_bccccdeabcf0.mp3",
+      "hash": "bccccdeabcf0",
+      "text": "CHICKEN SOUP!",
+      "voice": "brock"
+    },
+    "move5": {
+      "file": "moves_move5_589b48f347e0.mp3",
+      "hash": "589b48f347e0",
+      "text": "HORA DANCE!",
+      "voice": "brock"
+    },
+    "move6": {
+      "file": "moves_move6_4ff35a61383f.mp3",
+      "hash": "4ff35a61383f",
+      "text": "GEFILTE FISH!",
+      "voice": "brock"
+    },
+    "move7": {
+      "file": "moves_move7_0cbc51815f71.mp3",
+      "hash": "0cbc51815f71",
+      "text": "LATKE SPIN!",
+      "voice": "brock"
+    },
+    "move8": {
+      "file": "moves_move8_60c5cfda860e.mp3",
+      "hash": "60c5cfda860e",
+      "text": "BLOOD!",
+      "voice": "brock"
+    },
+    "move9": {
+      "file": "moves_move9_4cc9b264f59b.mp3",
+      "hash": "4cc9b264f59b",
+      "text": "FROGS!",
+      "voice": "brock"
+    },
+    "move10": {
+      "file": "moves_move10_6d838b725644.mp3",
+      "hash": "6d838b725644",
+      "text": "LICE!",
+      "voice": "brock"
+    },
+    "move11": {
+      "file": "moves_move11_279b9d874508.mp3",
+      "hash": "279b9d874508",
+      "text": "WILD BEASTS!",
+      "voice": "brock"
+    },
+    "move12": {
+      "file": "moves_move12_a2d2a5d6b760.mp3",
+      "hash": "a2d2a5d6b760",
+      "text": "PESTILENCE!",
+      "voice": "brock"
+    },
+    "move13": {
+      "file": "moves_move13_82dc5b282ec2.mp3",
+      "hash": "82dc5b282ec2",
+      "text": "BOILS!",
+      "voice": "brock"
+    },
+    "move14": {
+      "file": "moves_move14_738d5cabd2ef.mp3",
+      "hash": "738d5cabd2ef",
+      "text": "HAIL!",
+      "voice": "brock"
+    },
+    "move15": {
+      "file": "moves_move15_07b901151823.mp3",
+      "hash": "07b901151823",
+      "text": "LOCUSTS!",
+      "voice": "brock"
+    },
+    "move16": {
+      "file": "moves_move16_216ce10b533e.mp3",
+      "hash": "216ce10b533e",
+      "text": "DARKNESS!",
+      "voice": "brock"
+    },
+    "move17": {
+      "file": "moves_move17_66d06fb03254.mp3",
+      "hash": "66d06fb03254",
+      "text": "BURNING BUSH!",
+      "voice": "brock"
+    }
+  },
+  "kids": {
+    "laugh1": {
+      "file": "kids_laugh1_31c20944c332.mp3",
+      "hash": "31c20944c332",
+      "text": "Hee hee hee!",
+      "voice": "kid"
+    },
+    "laugh2": {
+      "file": "kids_laugh2_8838ef7ec90c.mp3",
+      "hash": "8838ef7ec90c",
+      "text": "Ha ha ha!",
+      "voice": "kid"
+    },
+    "cheer1": {
+      "file": "kids_cheer1_94ce0d9ae292.mp3",
+      "hash": "94ce0d9ae292",
+      "text": "Yay!",
+      "voice": "kid"
+    },
+    "cheer2": {
+      "file": "kids_cheer2_5bb2285cc0db.mp3",
+      "hash": "5bb2285cc0db",
+      "text": "Hooray!",
+      "voice": "kid"
+    }
+  },
+  "zuz": {
+    "found1": {
+      "file": "zuz_found1_415ba595cc6c.mp3",
+      "hash": "415ba595cc6c",
+      "text": "I found one zuz! Need one more.",
+      "voice": "mark"
+    },
+    "found2": {
+      "file": "zuz_found2_035b0ebcedd1.mp3",
+      "hash": "035b0ebcedd1",
+      "text": "Found two zuzim, enough for a goat!",
+      "voice": "mark"
+    }
+  },
+  "gameover": {
+    "asleep": {
+      "file": "gameover_asleep_a0d345d2d331.mp3",
+      "hash": "a0d345d2d331",
+      "text": "You fell asleep at the Seder! GAME OVER!",
+      "voice": "brock"
+    },
+    "caught": {
+      "file": "gameover_caught_5bf01457a064.mp3",
+      "hash": "5bf01457a064",
+      "text": "You got caught! GAME OVER!",
+      "voice": "brock"
+    },
+    "eaten": {
+      "file": "gameover_eaten_4a9714b12a88.mp3",
+      "hash": "4a9714b12a88",
+      "text": "You got eaten! GAME OVER!",
+      "voice": "brock"
+    },
+    "burned": {
+      "file": "gameover_burned_358afeefd3b8.mp3",
+      "hash": "358afeefd3b8",
+      "text": "You got burned! GAME OVER!",
+      "voice": "brock"
+    },
+    "drowned": {
+      "file": "gameover_drowned_969d2c5a2ce7.mp3",
+      "hash": "969d2c5a2ce7",
+      "text": "You drowned! GAME OVER!",
+      "voice": "brock"
+    },
+    "killed": {
+      "file": "gameover_killed_4ebacfdf16ec.mp3",
+      "hash": "4ebacfdf16ec",
+      "text": "You were killed! GAME OVER!",
+      "voice": "brock"
+    },
+    "lost": {
+      "file": "gameover_lost_c73cd0406c60.mp3",
+      "hash": "c73cd0406c60",
+      "text": "You lost the battle! GAME OVER!",
+      "voice": "brock"
+    },
+    "timeout": {
+      "file": "gameover_timeout_999f70af9a2a.mp3",
+      "hash": "999f70af9a2a",
+      "text": "Time ran out! GAME OVER!",
+      "voice": "brock"
+    },
+    "default": {
+      "file": "gameover_default_4d9ba4050341.mp3",
+      "hash": "4d9ba4050341",
+      "text": "GAME OVER! Better luck next time!",
+      "voice": "brock"
+    }
+  },
+  "roundwinner": {
+    "stick": {
+      "file": "roundwinner_stick_78b2b962791a.mp3",
+      "hash": "78b2b962791a",
+      "text": "Stick won!",
+      "voice": "brock"
+    },
+    "dog": {
+      "file": "roundwinner_dog_c84c29a58cf2.mp3",
+      "hash": "c84c29a58cf2",
+      "text": "Dog won!",
+      "voice": "brock"
+    }
+  }
+}

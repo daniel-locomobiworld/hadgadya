@@ -503,6 +503,7 @@ body {
     transform: translateX(-50%);
     z-index: 1000;
     touch-action: none;
+    display: none; /* Hidden by default - only shown on touch devices via JS */
 }
 
 #dpad {
@@ -588,10 +589,6 @@ body {
     .menu-btn {
         padding: 12px 25px;
         font-size: 16px;
-    }
-    
-    #mobile-controls {
-        display: block !important;
     }
 }
 

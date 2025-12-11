@@ -66,12 +66,17 @@ class GameEngine {
     }
     
     setupTouchControls() {
-        // Check if on mobile
-        this.isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-                        ('ontouchstart' in window);
+        // Only show touch controls on actual touch devices (not desktop with touch screen)
+        // Check for mobile user agent AND no mouse pointer
+        const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+        const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         
-        if (this.isMobile) {
-            document.getElementById('mobile-controls')?.classList.remove('hidden');
+        // Only show on mobile devices, not desktop with touch
+        this.isMobile = isMobileUA && isTouchDevice;
+        
+        const mobileControls = document.getElementById('mobile-controls');
+        if (this.isMobile && mobileControls) {
+            mobileControls.style.display = 'block';
         }
         
         // Touch button mappings
@@ -108,31 +113,8 @@ class GameEngine {
                     this.keys[key] = false;
                     btn.classList.remove('pressed');
                 });
-                
-                // Mouse support for testing on desktop
-                btn.addEventListener('mousedown', (e) => {
-                    e.preventDefault();
-                    this.keys[key] = true;
-                    btn.classList.add('pressed');
-                });
-                
-                btn.addEventListener('mouseup', (e) => {
-                    this.keys[key] = false;
-                    btn.classList.remove('pressed');
-                });
-                
-                btn.addEventListener('mouseleave', (e) => {
-                    this.keys[key] = false;
-                    btn.classList.remove('pressed');
-                });
             }
         });
-        
-        // Also allow tapping on canvas for action
-        this.canvas.addEventListener('touchstart', (e) => {
-            // Show mobile controls if hidden
-            document.getElementById('mobile-controls')?.classList.remove('hidden');
-        }, { passive: true });
     }
     
     isKeyDown(key) {

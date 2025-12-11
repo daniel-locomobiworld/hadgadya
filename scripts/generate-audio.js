@@ -161,9 +161,12 @@ const AUDIO_MANIFEST = {
     }
 };
 
-// Generate hash for text + voice combination
+// Version number - increment to force regeneration of all audio
+const AUDIO_VERSION = 2;
+
+// Generate hash for text + voice combination + version
 function generateHash(text, voice) {
-    return crypto.createHash('md5').update(`${voice}:${text}`).digest('hex').substring(0, 12);
+    return crypto.createHash('md5').update(`v${AUDIO_VERSION}:${voice}:${text}`).digest('hex').substring(0, 12);
 }
 
 // Generate speech using ElevenLabs API

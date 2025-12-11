@@ -67,12 +67,13 @@ class GameEngine {
     
     setupTouchControls() {
         // Only show touch controls on actual touch devices (not desktop with touch screen)
-        // Check for mobile user agent AND no mouse pointer
+        // Check for actual mobile devices - exclude desktops with touch screens
         const isTouchDevice = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
         const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const isDesktopUA = /Windows NT|Macintosh|Linux x86/i.test(navigator.userAgent);
         
-        // Only show on mobile devices, not desktop with touch
-        this.isMobile = isMobileUA && isTouchDevice;
+        // Only show on mobile devices - explicitly exclude desktop even with touch
+        this.isMobile = isMobileUA && isTouchDevice && !isDesktopUA;
         
         const mobileControls = document.getElementById('mobile-controls');
         if (this.isMobile && mobileControls) {

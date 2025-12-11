@@ -106,6 +106,10 @@ class VSSplashScreen {
             display: none;
             border: 4px solid #ff00ff;
             box-shadow: 0 0 50px #ff00ff, 0 0 100px #00ffff;
+            max-width: 95vw;
+            max-height: 80vh;
+            width: auto;
+            height: auto;
         `;
         document.body.appendChild(this.canvas);
         this.ctx = this.canvas.getContext('2d');

@@ -314,7 +314,7 @@ class Level6 {
             
             if (burningObjects.length === 0 && burningWalls.length === 0) {
                 this.complete = true;
-                this.displayMessage('🎉 Water quenched all the fires! The Seder is saved!');
+                this.displayMessage('🎉 Water quenched all the fires!');
                 setTimeout(() => {
                     if (this.engine.onLevelComplete) {
                         this.engine.onLevelComplete();

@@ -20,8 +20,14 @@ class Level8 {
             knifeEmoji: '🔪',
             invincible: false,
             invincibleTimer: 0,
-            canStrike: false
+            canStrike: false,
+            knifeSwing: 0,       // Knife swing animation timer
+            knifeSwingAngle: 0   // Current swing angle
         };
+        
+        // Victory display
+        this.showVictory = false;
+        this.victoryTimer = 0;
         
         // Ox (enemy)
         this.ox = {
@@ -93,6 +99,19 @@ class Level8 {
             return dust.life > 0;
         });
         
+        // Update knife swing animation
+        if (this.player.knifeSwing > 0) {
+            this.player.knifeSwing -= dt;
+            // Swing from -90 degrees to +90 degrees
+            const progress = 1 - (this.player.knifeSwing / 0.4);
+            this.player.knifeSwingAngle = -Math.PI / 2 + progress * Math.PI;
+        }
+        
+        // Update victory timer
+        if (this.showVictory) {
+            this.victoryTimer -= dt;
+        }
+        
         // Update matzah powerups
         this.matzahPowerups = this.matzahPowerups.filter(matzah => {
             matzah.update(dt);
@@ -146,6 +165,11 @@ class Level8 {
                 this.ox.stateTimer = 0.5;
                 this.ox.tired = false;
                 this.engine.screenShake();
+                
+                // Start knife swing animation
+                this.player.knifeSwing = 0.4;  // 0.4 second swing
+                this.player.knifeSwingAngle = -Math.PI / 2;  // Start angle
+                
                 this.displayMessage(`🔪 Strike! (${this.ox.hits}/${this.ox.maxHits})`);
                 // Knife strike sound
                 if (window.audioManager) {
@@ -163,12 +187,14 @@ class Level8 {
                 // Check win
                 if (this.ox.hits >= this.ox.maxHits) {
                     this.complete = true;
-                    this.displayMessage('🎉 The Shochet defeated the Ox!');
+                    this.showVictory = true;
+                    this.victoryTimer = 2.5;
+                    this.displayMessage('🍔 The Shochet made hamburgers!');
                     setTimeout(() => {
                         if (this.engine.onLevelComplete) {
                             this.engine.onLevelComplete();
                         }
-                    }, 2000);
+                    }, 2500);
                 }
             }
         }
@@ -361,9 +387,28 @@ class Level8 {
         
         ctx.fillText(this.player.emoji, this.player.x, this.player.y);
         
-        // Draw knife always visible next to butcher
-        ctx.font = '30px Arial';
-        ctx.fillText(this.player.knifeEmoji, this.player.x + 30, this.player.y - 5);
+        // Draw knife with swing animation
+        ctx.save();
+        ctx.translate(this.player.x + 25, this.player.y - 10);
+        
+        if (this.player.knifeSwing > 0) {
+            // Swinging knife animation
+            ctx.rotate(this.player.knifeSwingAngle);
+            ctx.font = '35px Arial';
+            ctx.fillText(this.player.knifeEmoji, 0, -15);
+            
+            // Slash effect
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.arc(0, 0, 30, this.player.knifeSwingAngle - 0.5, this.player.knifeSwingAngle + 0.3);
+            ctx.stroke();
+        } else {
+            // Normal knife position
+            ctx.font = '30px Arial';
+            ctx.fillText(this.player.knifeEmoji, 5, 5);
+        }
+        ctx.restore();
         
         // Draw cape/cloth (smaller shield)
         ctx.font = '18px Arial';
@@ -406,8 +451,36 @@ class Level8 {
         ctx.fillText(`Hits: ${this.ox.hits}/${this.ox.maxHits}`, 20, 75);
         ctx.shadowBlur = 0;
         
+        // Victory hamburger display!
+        if (this.showVictory) {
+            // Dark overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, 800, 600);
+            
+            // Plate of hamburgers!
+            ctx.font = '80px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('🍔', 320, 300);
+            ctx.fillText('🍔', 400, 280);
+            ctx.fillText('🍔', 480, 300);
+            ctx.fillText('🍔', 360, 350);
+            ctx.fillText('🍔', 440, 350);
+            
+            // Plate
+            ctx.font = '120px Arial';
+            ctx.fillText('🍽️', 400, 420);
+            
+            // Victory text
+            ctx.font = 'bold 36px Arial';
+            ctx.fillStyle = '#ffd700';
+            ctx.shadowColor = 'black';
+            ctx.shadowBlur = 5;
+            ctx.fillText('🎉 Delicious Hamburgers! 🎉', 400, 500);
+            ctx.shadowBlur = 0;
+        }
+        
         // Draw message
-        if (this.showMessage) {
+        if (this.showMessage && !this.showVictory) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
             ctx.fillRect(200, 520, 400, 50);
             ctx.font = '18px Arial';
@@ -417,7 +490,7 @@ class Level8 {
         }
         
         // Hint
-        if (!this.showMessage) {
+        if (!this.showMessage && !this.showVictory) {
             ctx.font = '12px Arial';
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             ctx.textAlign = 'center';

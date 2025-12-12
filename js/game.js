@@ -386,6 +386,8 @@ class HadGadyaGame {
     }
     
     replayLevel() {
+        // Reset awakeness to full when retrying
+        this.engine.awakeness = 100;
         // Show VS splash again when replaying
         this.selectLevel(this.currentLevelNum);
     }
@@ -397,10 +399,8 @@ class HadGadyaGame {
         }
         this.engine.levelTime = 0;
         
-        // If awakeness is too low, give some back
-        if (this.engine.awakeness < 50) {
-            this.engine.awakeness = 50;
-        }
+        // Reset awakeness to full on quick replay too
+        this.engine.awakeness = 100;
         
         this.startCurrentLevel();
     }

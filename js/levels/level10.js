@@ -5,8 +5,8 @@ class Level10 {
     constructor(engine) {
         this.engine = engine;
         this.name = "Final Battle";
-        this.description = "You are The Holy One! Defeat the Angel of Death in an epic 1v1 battle!";
-        this.instructions = "← → to move, ↑ to jump, Z to punch, X to special, C to block!";
+        this.description = "You are The Holy One! Defeat the Angel of Death in an epic 1v1 fighting battle! Reduce their HP to 0 to win!";
+        this.instructions = "← → Move | ↑ Jump | Z Punch | X Special Attack | C Block. Build combos for bonus damage!";
         this.icon = "✡️";
         
         // Ground level
@@ -589,11 +589,16 @@ class Level10 {
             ctx.fillText(this.messageText, 400, 290);
         }
         
-        // Controls
-        ctx.font = '12px Arial';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+        // Controls and instructions at top
+        ctx.font = 'bold 14px Arial';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.textAlign = 'center';
-        ctx.fillText('← → Move | ↑ Jump | Z Punch | X Special (costs meter) | C Block', 400, 590);
+        ctx.fillText('🎮 CONTROLS: ← → Move | ↑ Jump | Z Punch | X Special | C Block', 400, 25);
+        
+        // Win condition hint
+        ctx.font = '12px Arial';
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
+        ctx.fillText('⚔️ Reduce Angel of Death HP to 0 to win! Use combos for bonus damage!', 400, 45);
     }
     
     renderFighter(ctx, fighter, emoji, glowColor) {

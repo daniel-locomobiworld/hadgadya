@@ -101,13 +101,14 @@ class AudioManager {
     // Load the audio manifest
     async loadManifest() {
         try {
-            // Add cache-busting timestamp to prevent browser caching
-            const cacheBuster = `?t=${Date.now()}`;
+            // Add version + timestamp to prevent any caching (browser + CDN)
+            const version = 'v2';
+            const cacheBuster = `?${version}&t=${Date.now()}`;
             const response = await fetch('audio/manifest.json' + cacheBuster);
             if (response.ok) {
                 this.manifest = await response.json();
                 this.manifestLoaded = true;
-                console.log('Audio manifest loaded successfully');
+                console.log('Audio manifest loaded successfully:', Object.keys(this.manifest));
             } else {
                 console.warn('Audio manifest not found - run scripts/generate-audio.js to generate audio files');
                 this.manifestLoaded = false;

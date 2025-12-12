@@ -49,6 +49,11 @@ class Level7 {
         this.matzahPowerups = [];
         this.matzahSpawnTimer = 10;
         
+        // Difficulty timers - spawn new puddles and kids over time
+        this.puddleSpawnTimer = 8;  // First new puddle after 8 seconds
+        this.kidSpawnTimer = 30;     // First extra kid after 30 seconds
+        this.levelTime = 0;          // Track total time in level
+        
         // Visual effects
         this.effects = [];
         this.splashes = [];
@@ -107,6 +112,95 @@ class Level7 {
                 waterValue: 5  // Each puddle gives 5% water
             });
         });
+    }
+    
+    spawnNewPuddle() {
+        // Spawn a new puddle at a random valid location
+        let x, y, valid;
+        let attempts = 0;
+        do {
+            x = 80 + Math.random() * 640;
+            y = 100 + Math.random() * 420;
+            valid = true;
+            // Check not too close to obstacles
+            for (let obs of this.obstacles) {
+                if (x > obs.x - 50 && x < obs.x + obs.width + 50 &&
+                    y > obs.y - 50 && y < obs.y + obs.height + 50) {
+                    valid = false;
+                }
+            }
+            // Check not too close to existing puddles
+            for (let puddle of this.puddles) {
+                const dx = x - puddle.x;
+                const dy = y - puddle.y;
+                if (Math.sqrt(dx * dx + dy * dy) < 80) {
+                    valid = false;
+                }
+            }
+            attempts++;
+        } while (!valid && attempts < 30);
+        
+        if (valid) {
+            this.puddles.push({
+                x: x,
+                y: y,
+                size: 30 + Math.random() * 25,
+                water: 100,
+                wobble: Math.random() * Math.PI * 2,
+                waterValue: 5,
+                isNew: true  // Mark as new for visual effect
+            });
+            this.displayMessage('💧 A new puddle appeared!');
+            
+            // Splash effect at spawn location
+            for (let i = 0; i < 8; i++) {
+                this.effects.push({
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 150,
+                    vy: (Math.random() - 0.5) * 150,
+                    life: 0.8,
+                    emoji: '💧',
+                    size: 16
+                });
+            }
+        }
+    }
+    
+    spawnExtraKid() {
+        const kidEmojis = ['👦', '👧', '🧒', '👶', '🧒', '👦'];
+        const kidNames = ['Yosef', 'Sarah', 'David', 'Little Leah', 'Benny', 'Avi'];
+        const kidIndex = this.kids.length % kidEmojis.length;
+        
+        // Spawn at edge of screen
+        const edge = Math.floor(Math.random() * 4);
+        let x, y;
+        switch (edge) {
+            case 0: x = 50; y = 100 + Math.random() * 400; break;  // Left
+            case 1: x = 750; y = 100 + Math.random() * 400; break; // Right
+            case 2: x = 100 + Math.random() * 600; y = 90; break;  // Top
+            case 3: x = 100 + Math.random() * 600; y = 550; break; // Bottom
+        }
+        
+        this.kids.push({
+            x: x,
+            y: y,
+            vx: (Math.random() - 0.5) * 200,
+            vy: (Math.random() - 0.5) * 200,
+            size: 32,
+            emoji: kidEmojis[kidIndex],
+            name: kidNames[kidIndex],
+            bounceTimer: 0,
+            hyperTimer: Math.random() * 2,
+            isHyper: true  // New kids start hyper!
+        });
+        
+        this.displayMessage(`🧒 ${kidNames[kidIndex]} joined the chaos!`);
+        
+        // Play kid sound
+        if (window.audioManager) {
+            window.audioManager.playRandomKidSound();
+        }
     }
     
     spawnWaterDrop() {
@@ -170,6 +264,23 @@ class Level7 {
         if (this.matzahSpawnTimer <= 0) {
             this.matzahPowerups.push(new MatzahPowerup(100 + Math.random() * 600, 100 + Math.random() * 400));
             this.matzahSpawnTimer = 12 + Math.random() * 5;
+        }
+        
+        // Track level time
+        this.levelTime += dt;
+        
+        // Spawn new puddles over time to make it harder
+        this.puddleSpawnTimer -= dt;
+        if (this.puddleSpawnTimer <= 0) {
+            this.spawnNewPuddle();
+            this.puddleSpawnTimer = 10 + Math.random() * 5;  // Next puddle in 10-15 seconds
+        }
+        
+        // Spawn extra kids every 30 seconds
+        this.kidSpawnTimer -= dt;
+        if (this.kidSpawnTimer <= 0) {
+            this.spawnExtraKid();
+            this.kidSpawnTimer = 30;  // Next kid in 30 seconds
         }
         
         this.matzahPowerups = this.matzahPowerups.filter(matzah => {

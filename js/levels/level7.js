@@ -77,6 +77,17 @@ class Level7 {
         this.messageText = '';
         this.messageTimer = 0;
         
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬆️⬇️⬅️➡️ or WASD - Move',
+            '',
+            '🎯 GOAL: Drink 75% of water!',
+            '⚠️ Avoid the kids!'
+        ];
+        
         // Spawn initial water
         for (let i = 0; i < 5; i++) {
             this.spawnWaterDrop();
@@ -241,6 +252,14 @@ class Level7 {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         // Update slurp cooldown
         if (this.slurpCooldown > 0) {
@@ -816,6 +835,25 @@ class Level7 {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.textAlign = 'center';
         ctx.fillText('Arrow keys to move • Collect 💧 and drink from puddles • Avoid the kids!', 400, 590);
+        
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 150, 400, 210);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 150, 400, 210);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 190;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
+        }
     }
     
     reset() {

@@ -63,6 +63,17 @@ class Level3 {
         this.messageText = '';
         this.messageTimer = 0;
         
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬅️➡️ - Move left/right',
+            'SPACE - Shoot teeth',
+            '',
+            '🎯 GOAL: Defeat 10 cats + boss!'
+        ];
+        
         // Biting phase (when dog wins)
         this.phase = 'fight'; // 'fight' or 'biting'
         this.bitingPhase = null;
@@ -73,6 +84,14 @@ class Level3 {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         // Handle biting phase
         if (this.phase === 'biting') {
@@ -730,6 +749,25 @@ class Level3 {
             const bounce = Math.abs(Math.sin(bp.timer * 10)) * 15;
             ctx.strokeText('CHOMP!', bp.dogX, bp.dogY - 60 - bounce);
             ctx.fillText('CHOMP!', bp.dogX, bp.dogY - 60 - bounce);
+        }
+        
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 180, 400, 200);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 180, 400, 200);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 220;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
         }
     }
     

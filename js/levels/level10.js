@@ -81,6 +81,18 @@ class Level10 {
         this.messageText = '';
         this.messageTimer = 0;
         
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬅️➡️ - Move',
+            '⬆️ - Jump',
+            'Z - Punch | X - Special | C - Block',
+            '',
+            '🎯 GOAL: Defeat the Angel of Death!'
+        ];
+        
         // DRAMATIC INTRO SEQUENCE!
         this.introPhase = 0;        // 0=fade in, 1=VS, 2=fighters, 3=FIGHT!, 4=playing
         this.introTimer = 0;
@@ -93,6 +105,14 @@ class Level10 {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         // ===== DRAMATIC INTRO SEQUENCE! =====
         if (this.introPhase < 4) {
@@ -897,6 +917,9 @@ class Level10 {
         ctx.font = '12px Arial';
         ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
         ctx.fillText('⚔️ Reduce Angel of Death HP to 0 to win! Use combos for bonus damage!', 400, 152);
+        
+        // Instructions overlay (at start)
+        this.renderInstructionsOverlay(ctx);
     }
     
     renderFighter(ctx, fighter, emoji, glowColor) {
@@ -940,6 +963,27 @@ class Level10 {
         
         ctx.shadowBlur = 0;
         ctx.restore();
+    }
+    
+    renderInstructionsOverlay(ctx) {
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 150, 400, 210);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 150, 400, 210);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 190;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
+        }
     }
     
     reset() {

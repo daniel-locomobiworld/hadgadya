@@ -58,6 +58,17 @@ class Level1 {
         this.messageText = '';
         this.messageTimer = 0;
         
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬆️⬇️⬅️➡️ or WASD - Move',
+            'SPACE - Search vases',
+            '',
+            '🎯 GOAL: Find 2 coins, buy the goat!'
+        ];
+        
         // Track broken pots for respawning (1 new pot per 2 broken)
         this.brokenPotsCount = 0;
         
@@ -178,6 +189,14 @@ class Level1 {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         // Update player
         this.player.update(dt, this.engine);
@@ -378,6 +397,25 @@ class Level1 {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
             ctx.textAlign = 'center';
             ctx.fillText('Press SPACE near vases to search for coins!', 400, 580);
+        }
+        
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 180, 400, 220);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 180, 400, 220);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 220;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
         }
     }
     

@@ -37,6 +37,18 @@ class Level4 {
         this.showMessage = false;
         this.messageText = '';
         this.messageTimer = 0;
+        
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬅️➡️ - Rotate tank',
+            '⬆️⬇️ - Move forward/back',
+            'SPACE - Fire',
+            '',
+            '🎯 GOAL: Win 3 rounds!'
+        ];
     }
     
     initRound() {
@@ -268,6 +280,14 @@ class Level4 {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         // Between rounds timer
         if (this.betweenRounds) {
@@ -985,6 +1005,25 @@ class Level4 {
             
             ctx.restore();
         });
+        
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 150, 400, 220);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 150, 400, 220);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 190;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
+        }
     }
     
     canMoveTo(x, y, w, h) {

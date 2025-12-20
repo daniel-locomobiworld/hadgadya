@@ -46,6 +46,17 @@ class BonusLevel {
         this.messageText = '';
         this.messageTimer = 0;
         
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬆️⬇️⬅️➡️ or WASD - Move',
+            'SPACE - Search jars',
+            '',
+            '🎯 GOAL: Find the Afikoman!'
+        ];
+        
         // Level complete
         this.complete = false;
         
@@ -193,6 +204,14 @@ class BonusLevel {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         // Update player
         this.player.update(dt, this.engine);
@@ -394,6 +413,9 @@ class BonusLevel {
             ctx.textAlign = 'center';
             ctx.fillText('Press SPACE near jars to search for the Afikoman!', 400, 590);
         }
+        
+        // Instructions overlay (at start)
+        this.renderInstructionsOverlay(ctx);
     }
     
     renderJar(ctx, jar) {
@@ -411,6 +433,27 @@ class BonusLevel {
         ctx.fillText(jarEmojis[jar.jarType], 0, 0);
         
         ctx.restore();
+    }
+    
+    renderInstructionsOverlay(ctx) {
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 180, 400, 200);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 180, 400, 200);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 220;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
+        }
     }
     
     reset() {

@@ -74,6 +74,16 @@ class Level2 {
         this.showMessage = false;
         this.messageText = '';
         this.messageTimer = 0;
+        
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬆️⬇️⬅️➡️ or WASD - Move',
+            '',
+            '🎯 GOAL: Chase the goat, then battle!'
+        ];
     }
     
     generateTallGrass() {
@@ -131,6 +141,14 @@ class Level2 {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         if (this.phase === 'chase') {
             this.updateChase(dt);
@@ -757,6 +775,25 @@ class Level2 {
         });
         
         ctx.restore();
+        
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 180, 400, 180);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 180, 400, 180);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 220;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
+        }
     }
     
     reset() {

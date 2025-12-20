@@ -89,12 +89,31 @@ class Level8 {
         this.messageText = '';
         this.messageTimer = 0;
         
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬆️⬇️⬅️➡️ - Dodge',
+            'SPACE - Strike (when ox is tired)',
+            '',
+            '🎯 GOAL: Hit the ox 5 times!'
+        ];
+        
         // Start with a message
         this.displayMessage('¡Olé! Dodge the ox!');
     }
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         // Update player
         this.updatePlayer(dt);
@@ -769,6 +788,25 @@ class Level8 {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
             ctx.textAlign = 'center';
             ctx.fillText('Dodge charges! Strike when the ox hits the wall and gets tired!', 400, 590);
+        }
+        
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 150, 400, 210);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 150, 400, 210);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 190;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
         }
     }
     

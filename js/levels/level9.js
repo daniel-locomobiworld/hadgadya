@@ -105,6 +105,18 @@ class Level9 {
         this.messageTimer = 0;
         this.gameTime = 0;
         
+        // Instructions overlay
+        this.showInstructions = true;
+        this.instructionsTimer = 4;
+        this.controlsText = [
+            '🎮 CONTROLS',
+            '⬅️➡️ - Steer',
+            '⬆️ - Accelerate',
+            '⬇️ - Brake',
+            '',
+            '🎯 GOAL: Catch the Butcher!'
+        ];
+        
         this.displayMessage('🏁 GO FAST! Catch the Butcher before he escapes!');
     }
     
@@ -123,6 +135,14 @@ class Level9 {
     
     update(dt) {
         if (this.complete) return;
+        
+        // Instructions timer
+        if (this.showInstructions) {
+            this.instructionsTimer -= dt;
+            if (this.instructionsTimer <= 0) {
+                this.showInstructions = false;
+            }
+        }
         
         this.gameTime += dt;
         
@@ -908,6 +928,25 @@ class Level9 {
         ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
         ctx.textAlign = 'center';
         ctx.fillText('⬆️ GO FAST to catch up! ⬅️ ➡️ Steer to RAM the Butcher! 🍷 Avoid wine spills!', 400, 590);
+        
+        // INSTRUCTIONS OVERLAY
+        if (this.showInstructions && this.instructionsTimer > 0) {
+            const alpha = Math.min(1, this.instructionsTimer / 0.5);
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
+            ctx.fillRect(200, 150, 400, 220);
+            ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
+            ctx.lineWidth = 3;
+            ctx.strokeRect(200, 150, 400, 220);
+            
+            ctx.textAlign = 'center';
+            ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            let y = 190;
+            for (let line of this.controlsText) {
+                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.fillText(line, 400, y);
+                y += 32;
+            }
+        }
     }
     
     reset() {

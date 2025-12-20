@@ -2,12 +2,22 @@
 // Bullfighting game - dodge the ox and hit it when it's tired
 
 class Level8 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "The Bullfight";
         this.description = "You are the Shochet (Butcher)! Dodge the charging ox and strike when it's exhausted!";
         this.instructions = "Arrow keys to dodge. Press SPACE to strike when the ox is tired!";
         this.icon = "🔪";
+        
+        // Difficulty settings
+        this.difficultySettings = {
+            easy: { oxSpeed: 220, tiredTime: 3.0 },
+            normal: { oxSpeed: 280, tiredTime: 2.5 },
+            hard: { oxSpeed: 340, tiredTime: 2.0 },
+            extreme: { oxSpeed: 400, tiredTime: 1.5 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Player (Butcher with knife)
         this.player = {
@@ -25,6 +35,16 @@ class Level8 {
             knifeSwingAngle: 0   // Current swing angle
         };
         
+        // MORTAL KOMBAT STYLE EFFECTS!
+        this.slashTrails = [];      // Knife slash trails
+        this.bloodSplatters = [];    // Blood splatter effects
+        this.hitSparks = [];         // Impact sparks
+        this.screenFlash = 0;        // Screen flash on hit
+        this.slowMotion = 0;         // Slow motion effect
+        this.hitFreezeTimer = 0;     // Hit freeze frame
+        this.comboText = '';         // "FINISH HIM" style text
+        this.comboTextTimer = 0;
+        
         // Victory display
         this.showVictory = false;
         this.victoryTimer = 0;
@@ -35,7 +55,7 @@ class Level8 {
             y: 150,
             width: 60,
             height: 60,
-            speed: 280,
+            speed: this.settings.oxSpeed,
             emoji: '🐂',
             state: 'idle', // idle, charging, tired, hit
             stateTimer: 0,
@@ -98,6 +118,53 @@ class Level8 {
             dust.size *= 0.95;
             return dust.life > 0;
         });
+        
+        // Update MORTAL KOMBAT style effects!
+        // Slash trails
+        this.slashTrails = this.slashTrails.filter(slash => {
+            slash.life -= dt;
+            slash.opacity = slash.life / slash.maxLife;
+            return slash.life > 0;
+        });
+        
+        // Blood splatters
+        this.bloodSplatters = this.bloodSplatters.filter(blood => {
+            blood.life -= dt;
+            blood.x += blood.vx * dt;
+            blood.y += blood.vy * dt;
+            blood.vy += 300 * dt; // Gravity
+            blood.size *= 0.98;
+            return blood.life > 0;
+        });
+        
+        // Hit sparks
+        this.hitSparks = this.hitSparks.filter(spark => {
+            spark.life -= dt;
+            spark.x += spark.vx * dt;
+            spark.y += spark.vy * dt;
+            return spark.life > 0;
+        });
+        
+        // Screen flash
+        if (this.screenFlash > 0) {
+            this.screenFlash -= dt * 5;
+        }
+        
+        // Slow motion effect
+        if (this.slowMotion > 0) {
+            this.slowMotion -= dt;
+        }
+        
+        // Hit freeze
+        if (this.hitFreezeTimer > 0) {
+            this.hitFreezeTimer -= dt;
+            return; // Freeze everything!
+        }
+        
+        // Combo text timer
+        if (this.comboTextTimer > 0) {
+            this.comboTextTimer -= dt;
+        }
         
         // Update knife swing animation
         if (this.player.knifeSwing > 0) {
@@ -166,14 +233,78 @@ class Level8 {
                 this.ox.tired = false;
                 this.engine.screenShake();
                 
-                // Start knife swing animation
-                this.player.knifeSwing = 0.4;  // 0.4 second swing
+                // Start knife swing animation - LONGER AND MORE DRAMATIC!
+                this.player.knifeSwing = 0.6;  // 0.6 second swing
                 this.player.knifeSwingAngle = -Math.PI / 2;  // Start angle
                 
-                this.displayMessage(`🔪 Strike! (${this.ox.hits}/${this.ox.maxHits})`);
-                // Knife strike sound
+                // ===== MORTAL KOMBAT STYLE EFFECTS! =====
+                
+                // Screen flash!
+                this.screenFlash = 1.0;
+                
+                // Hit freeze for impact!
+                this.hitFreezeTimer = 0.08;
+                
+                // Slow motion!
+                this.slowMotion = 0.3;
+                
+                // Create SLASH TRAILS!
+                for (let i = 0; i < 5; i++) {
+                    this.slashTrails.push({
+                        x: this.ox.x + (Math.random() - 0.5) * 40,
+                        y: this.ox.y + (Math.random() - 0.5) * 40,
+                        angle: Math.random() * Math.PI * 2,
+                        length: 50 + Math.random() * 30,
+                        life: 0.4,
+                        maxLife: 0.4,
+                        opacity: 1,
+                        color: i % 2 === 0 ? '#ffffff' : '#ffff00'
+                    });
+                }
+                
+                // Create BLOOD SPLATTERS!
+                for (let i = 0; i < 15; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 100 + Math.random() * 200;
+                    this.bloodSplatters.push({
+                        x: this.ox.x,
+                        y: this.ox.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed - 100,
+                        size: 4 + Math.random() * 8,
+                        life: 0.8 + Math.random() * 0.4,
+                        color: Math.random() > 0.5 ? '#ff0000' : '#cc0000'
+                    });
+                }
+                
+                // Create HIT SPARKS!
+                for (let i = 0; i < 12; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 200 + Math.random() * 300;
+                    this.hitSparks.push({
+                        x: this.ox.x,
+                        y: this.ox.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        life: 0.3 + Math.random() * 0.2,
+                        color: ['#ffffff', '#ffff00', '#ff8800'][Math.floor(Math.random() * 3)]
+                    });
+                }
+                
+                // COMBO TEXT based on hits!
+                const comboTexts = ['BRUTAL!', 'SAVAGE!', 'VICIOUS!', 'FATALITY!', 'FINISH HIM!'];
+                this.comboText = comboTexts[Math.min(this.ox.hits - 1, 4)];
+                this.comboTextTimer = 1.5;
+                
+                this.displayMessage(`🔪 ${this.comboText} (${this.ox.hits}/${this.ox.maxHits})`);
+                
+                // DRAMATIC SOUNDS!
                 if (window.audioManager) {
-                    window.audioManager.playSynthSound('hit');
+                    window.audioManager.playSynthSound('explosion'); // Big impact
+                    window.audioManager.playSynthSound('hit'); // Knife hit
+                    setTimeout(() => {
+                        if (window.audioManager) window.audioManager.playSynthSound('splash'); // Blood
+                    }, 100);
                 }
                 
                 // Spawn matzah sometimes
@@ -189,6 +320,8 @@ class Level8 {
                     this.complete = true;
                     this.showVictory = true;
                     this.victoryTimer = 2.5;
+                    this.comboText = 'FATALITY!';
+                    this.comboTextTimer = 3;
                     this.displayMessage('🍔 The Shochet made hamburgers!');
                     setTimeout(() => {
                         if (this.engine.onLevelComplete) {
@@ -275,8 +408,8 @@ class Level8 {
                     
                     this.ox.state = 'tired';
                     this.ox.tired = true;
-                    this.ox.tiredTimer = 2;
-                    this.ox.stateTimer = 2;
+                    this.ox.tiredTimer = this.settings.tiredTime;
+                    this.ox.stateTimer = this.settings.tiredTime;
                     this.engine.screenShake();
                     this.displayMessage('💫 The ox is tired! Strike now!');
                 }
@@ -315,6 +448,11 @@ class Level8 {
     }
     
     render(ctx) {
+        // SCREEN FLASH effect!
+        if (this.screenFlash > 0) {
+            ctx.save();
+        }
+        
         // Arena background (sandy bullring)
         ctx.fillStyle = '#d4a56a';
         ctx.fillRect(0, 0, 800, 600);
@@ -377,36 +515,78 @@ class Level8 {
             ctx.stroke();
         }
         
-        // Draw player (Butcher - bigger!)
-        ctx.font = '50px Arial';
+        // Draw player (Butcher) - ALWAYS FULLY VISIBLE with glow!
+        ctx.save();
         
-        // Flicker when invincible
+        // Pulsing glow for visibility
+        const pulse = Math.sin(this.engine.totalTime * 3) * 5;
+        const bobY = Math.sin(this.engine.totalTime * 2) * 2;
+        
+        // Only flicker alpha when invincible, otherwise FULLY OPAQUE
         if (this.player.invincible) {
-            ctx.globalAlpha = Math.sin(this.engine.totalTime * 20) > 0 ? 1 : 0.3;
+            ctx.globalAlpha = Math.sin(this.engine.totalTime * 20) > 0 ? 1 : 0.7;
+        } else {
+            ctx.globalAlpha = 1; // NEVER transparent!
         }
         
-        ctx.fillText(this.player.emoji, this.player.x, this.player.y);
+        // GLOW EFFECT - make player stand out!
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 25 + pulse;
+        ctx.font = '55px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.player.emoji, this.player.x, this.player.y + bobY);
         
-        // Draw knife with swing animation
+        // Second glow layer
+        ctx.shadowColor = '#ffffff';
+        ctx.shadowBlur = 15;
+        ctx.fillText(this.player.emoji, this.player.x, this.player.y + bobY);
+        ctx.shadowBlur = 0;
+        ctx.restore();
+        
+        // Draw knife with DRAMATIC swing animation!
         ctx.save();
         ctx.translate(this.player.x + 25, this.player.y - 10);
         
         if (this.player.knifeSwing > 0) {
-            // Swinging knife animation
+            // DRAMATIC swinging knife animation!
             ctx.rotate(this.player.knifeSwingAngle);
-            ctx.font = '35px Arial';
-            ctx.fillText(this.player.knifeEmoji, 0, -15);
             
-            // Slash effect
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
-            ctx.lineWidth = 3;
-            ctx.beginPath();
-            ctx.arc(0, 0, 30, this.player.knifeSwingAngle - 0.5, this.player.knifeSwingAngle + 0.3);
-            ctx.stroke();
+            // Knife glow
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 20;
+            ctx.font = '45px Arial';
+            ctx.fillText(this.player.knifeEmoji, 0, -20);
+            
+            // Multiple slash arc effects!
+            for (let i = 0; i < 3; i++) {
+                const alpha = 1 - (i * 0.3);
+                const offset = i * 0.2;
+                ctx.strokeStyle = `rgba(255, ${255 - i * 80}, ${255 - i * 120}, ${alpha})`;
+                ctx.lineWidth = 6 - i * 1.5;
+                ctx.beginPath();
+                ctx.arc(0, 0, 45 + i * 10, this.player.knifeSwingAngle - 0.8 - offset, this.player.knifeSwingAngle + 0.5);
+                ctx.stroke();
+            }
+            
+            // Speed lines!
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i < 5; i++) {
+                const angle = this.player.knifeSwingAngle - 0.3 - i * 0.15;
+                ctx.beginPath();
+                ctx.moveTo(Math.cos(angle) * 30, Math.sin(angle) * 30);
+                ctx.lineTo(Math.cos(angle) * 70, Math.sin(angle) * 70);
+                ctx.stroke();
+            }
+            ctx.shadowBlur = 0;
         } else {
-            // Normal knife position
-            ctx.font = '30px Arial';
+            // Normal knife position with subtle glow
+            ctx.shadowColor = '#ffcc00';
+            ctx.shadowBlur = 10;
+            ctx.font = '32px Arial';
             ctx.fillText(this.player.knifeEmoji, 5, 5);
+            ctx.shadowBlur = 0;
         }
         ctx.restore();
         
@@ -479,6 +659,100 @@ class Level8 {
             ctx.shadowBlur = 0;
         }
         
+        // ===== MORTAL KOMBAT STYLE EFFECTS! =====
+        
+        // Draw BLOOD SPLATTERS!
+        this.bloodSplatters.forEach(blood => {
+            ctx.fillStyle = blood.color;
+            ctx.globalAlpha = blood.life;
+            ctx.beginPath();
+            ctx.arc(blood.x, blood.y, blood.size, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.globalAlpha = 1;
+        
+        // Draw SLASH TRAILS!
+        this.slashTrails.forEach(slash => {
+            ctx.save();
+            ctx.translate(slash.x, slash.y);
+            ctx.rotate(slash.angle);
+            
+            // Gradient slash
+            const gradient = ctx.createLinearGradient(0, 0, slash.length, 0);
+            gradient.addColorStop(0, 'transparent');
+            gradient.addColorStop(0.3, slash.color);
+            gradient.addColorStop(0.7, slash.color);
+            gradient.addColorStop(1, 'transparent');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 8 * slash.opacity;
+            ctx.globalAlpha = slash.opacity;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(slash.length, 0);
+            ctx.stroke();
+            
+            ctx.restore();
+        });
+        ctx.globalAlpha = 1;
+        
+        // Draw HIT SPARKS!
+        this.hitSparks.forEach(spark => {
+            ctx.fillStyle = spark.color;
+            ctx.globalAlpha = spark.life * 2;
+            ctx.beginPath();
+            ctx.arc(spark.x, spark.y, 4, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Spark trail
+            ctx.strokeStyle = spark.color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(spark.x, spark.y);
+            ctx.lineTo(spark.x - spark.vx * 0.05, spark.y - spark.vy * 0.05);
+            ctx.stroke();
+        });
+        ctx.globalAlpha = 1;
+        
+        // Draw COMBO TEXT! ("BRUTAL!", "FATALITY!" etc)
+        if (this.comboTextTimer > 0 && this.comboText) {
+            ctx.save();
+            const scale = Math.min(1, (1.5 - this.comboTextTimer) * 3);
+            const shake = Math.sin(this.engine.totalTime * 30) * (this.comboTextTimer > 1 ? 3 : 0);
+            
+            ctx.translate(400 + shake, 200);
+            ctx.scale(scale, scale);
+            
+            // Text with dramatic outline
+            ctx.font = 'bold 60px Impact, Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Red glow
+            ctx.shadowColor = '#ff0000';
+            ctx.shadowBlur = 30;
+            ctx.fillStyle = '#ff0000';
+            ctx.fillText(this.comboText, 0, 0);
+            
+            // White inner text
+            ctx.shadowBlur = 0;
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 4;
+            ctx.strokeText(this.comboText, 0, 0);
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(this.comboText, 0, 0);
+            
+            ctx.restore();
+        }
+        
+        // SCREEN FLASH overlay!
+        if (this.screenFlash > 0) {
+            ctx.fillStyle = `rgba(255, 0, 0, ${this.screenFlash * 0.5})`;
+            ctx.fillRect(0, 0, 800, 600);
+            ctx.restore();
+        }
+        
         // Draw message
         if (this.showMessage && !this.showVictory) {
             ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
@@ -509,14 +783,16 @@ class Level8 {
             knifeEmoji: '🔪',
             invincible: false,
             invincibleTimer: 0,
-            canStrike: false
+            canStrike: false,
+            knifeSwing: 0,
+            knifeSwingAngle: 0
         };
         this.ox = {
             x: 400,
             y: 150,
             width: 60,
             height: 60,
-            speed: 280,
+            speed: this.settings.oxSpeed,
             emoji: '🐂',
             state: 'idle',
             stateTimer: 1,
@@ -531,6 +807,17 @@ class Level8 {
         };
         this.dustClouds = [];
         this.matzahPowerups = [];
+        // Reset Mortal Kombat effects
+        this.slashTrails = [];
+        this.bloodSplatters = [];
+        this.hitSparks = [];
+        this.screenFlash = 0;
+        this.slowMotion = 0;
+        this.hitFreezeTimer = 0;
+        this.comboText = '';
+        this.comboTextTimer = 0;
+        this.showVictory = false;
+        this.victoryTimer = 0;
         this.complete = false;
         this.showMessage = false;
         this.displayMessage('¡Olé! Dodge the ox!');

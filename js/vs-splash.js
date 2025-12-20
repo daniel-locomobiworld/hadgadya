@@ -126,6 +126,11 @@ class VSSplashScreen {
         
         const battle = this.battles[levelNum] || this.battles[1];
         
+        // Play epic Mortal Kombat style theme music!
+        if (window.audioManager) {
+            window.audioManager.playVSTheme();
+        }
+        
         // Play dramatic VS sound
         if (window.audioManager) {
             window.audioManager.playSynthSound('versus');
@@ -489,6 +494,10 @@ class VSSplashScreen {
             cancelAnimationFrame(this.animationId);
             this.animationId = null;
         }
+        // Stop the VS theme music
+        if (window.audioManager) {
+            window.audioManager.stopVSTheme();
+        }
     }
     
     // ============================================
@@ -504,9 +513,9 @@ class VSSplashScreen {
         this.characterSoundsPlayed = 0;
         this.levelNum = null;  // Clear level flag - this is title screen
         this.musicStarted = false;
+        this.waitingForClick = false;
         
-        // Try to start music immediately!
-        // Modern browsers may allow this if user has interacted with page before
+        // Start music immediately - user already interacted to get here
         this.startTitleMusic();
         
         // Start title animation
@@ -521,6 +530,8 @@ class VSSplashScreen {
         // Now we can play sounds after user gesture
         if (window.audioManager) {
             window.audioManager.playSynthSound('versus');
+            // Play the epic MK-style theme!
+            window.audioManager.playVSTheme();
         }
         
         // Start dramatic Mortal Kombat style music!
@@ -792,30 +803,23 @@ class VSSplashScreen {
     drawPressStart(progress) {
         const ctx = this.ctx;
         
-        // "PRESS START" blinks after everything loads
+        // Show "PRESS START" - music starts immediately since user already clicked to get here
         if (progress > 0.8) {
             const blink = Math.sin(Date.now() * 0.006) > 0;
             if (blink) {
                 ctx.save();
                 ctx.font = 'bold 32px "Courier New", monospace';
                 ctx.textAlign = 'center';
-                
-                // Different message based on music state
-                if (!this.musicStarted) {
-                    ctx.fillStyle = '#ffff00';
-                    ctx.shadowColor = '#ffff00';
-                    ctx.shadowBlur = 20;
-                    ctx.fillText('🔊 CLICK TO START 🔊', 400, 520);
-                } else {
-                    ctx.fillStyle = '#00ff00';
-                    ctx.shadowColor = '#00ff00';
-                    ctx.shadowBlur = 20;
-                    ctx.fillText('🎮 PRESS START 🎮', 400, 520);
-                }
+                ctx.fillStyle = '#00ff00';
+                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 20;
+                ctx.fillText('🎮 PRESS START 🎮', 400, 520);
                 ctx.restore();
             }
-            
-            // Credits
+        }
+        
+        // Credits
+        if (progress > 0.5) {
             ctx.save();
             ctx.font = '14px "Courier New", monospace';
             ctx.textAlign = 'center';

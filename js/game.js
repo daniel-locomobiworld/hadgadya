@@ -6,10 +6,14 @@ class HadGadyaGame {
         this.engine = new GameEngine();
         this.currentLevel = null;
         this.currentLevelNum = 0;
+        this.isBonusLevel = false;  // Track if playing bonus level
         
         // New Game+ difficulty system
         this.difficultyLevel = 1;  // 1 = normal, 2+ = harder
         this.speedMultiplier = 1.0;  // Enemies move faster each playthrough
+        
+        // Selected difficulty: 'easy', 'normal', 'hard', 'extreme'
+        this.selectedDifficulty = 'normal';
         
         // Level configurations with verses
         this.levelConfigs = [
@@ -60,16 +64,54 @@ class HadGadyaGame {
     }
     
     setupUI() {
+        // Add sound to all menu buttons
+        const playBlip = () => {
+            if (window.audioManager) window.audioManager.playSynthSound('blip');
+        };
+        const playSelect = () => {
+            if (window.audioManager) window.audioManager.playSynthSound('select');
+        };
+        
         // Main menu buttons
-        document.getElementById('start-game-btn').onclick = () => this.startNewGame();
-        document.getElementById('level-select-btn').onclick = () => this.showLevelSelect();
-        document.getElementById('how-to-play-btn').onclick = () => this.showHowToPlay();
+        document.getElementById('start-game-btn').onclick = () => { playSelect(); this.startNewGame(); };
+        document.getElementById('level-select-btn').onclick = () => { playBlip(); this.showLevelSelect(); };
+        document.getElementById('high-scores-btn').onclick = () => { playBlip(); this.showHighScores(); };
+        document.getElementById('how-to-play-btn').onclick = () => { playBlip(); this.showHowToPlay(); };
+        
+        // Start game dialog buttons
+        document.getElementById('start-game-go-btn').onclick = () => { playSelect(); this.actuallyStartGame(); };
+        document.getElementById('start-game-back-btn').onclick = () => { playBlip(); this.showMainMenu(); };
+        
+        // Start game dialog difficulty buttons
+        document.querySelectorAll('.start-diff-btn').forEach(btn => {
+            btn.onclick = () => { 
+                playBlip(); 
+                this.setDifficulty(btn.dataset.difficulty);
+                // Update the active state for start dialog buttons
+                document.querySelectorAll('.start-diff-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+        });
         
         // Level select
-        document.getElementById('back-to-menu-btn').onclick = () => this.showMainMenu();
+        document.getElementById('back-to-menu-btn').onclick = () => { playBlip(); this.showMainMenu(); };
+        
+        // Difficulty buttons (for level select/practice)
+        document.querySelectorAll('.difficulty-btn:not(.start-diff-btn)').forEach(btn => {
+            btn.onclick = () => { playBlip(); this.setDifficulty(btn.dataset.difficulty); };
+        });
         
         // How to play
         document.getElementById('back-from-help-btn').onclick = () => this.showMainMenu();
+        
+        // High scores
+        document.getElementById('back-from-scores-btn').onclick = () => this.showMainMenu();
+        document.querySelectorAll('[data-hs-difficulty]').forEach(btn => {
+            btn.onclick = () => this.filterHighScores(btn.dataset.hsDifficulty);
+        });
+        
+        // Submit score button
+        document.getElementById('submit-score-btn').onclick = () => this.submitScore();
         
         // Level intro
         document.getElementById('start-level-btn').onclick = () => this.startCurrentLevel();
@@ -99,6 +141,18 @@ class HadGadyaGame {
         document.getElementById('game-controls').classList.add('hidden');
         document.getElementById('pause-btn').textContent = '⏸️ Pause';
         this.showMainMenu();
+    }
+    
+    setDifficulty(difficulty) {
+        this.selectedDifficulty = difficulty;
+        
+        // Update UI
+        document.querySelectorAll('.difficulty-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.difficulty === difficulty) {
+                btn.classList.add('active');
+            }
+        });
     }
     
     togglePause() {
@@ -131,6 +185,8 @@ class HadGadyaGame {
         document.getElementById('level-complete').classList.add('hidden');
         document.getElementById('game-over').classList.add('hidden');
         document.getElementById('victory').classList.add('hidden');
+        document.getElementById('high-scores').classList.add('hidden');
+        document.getElementById('start-game-dialog').classList.add('hidden');
         document.getElementById('battle-ui').classList.add('hidden');
         document.getElementById('hud').style.display = 'none';
         document.getElementById('game-controls').classList.add('hidden');
@@ -217,6 +273,11 @@ class HadGadyaGame {
         document.getElementById('complete-time').textContent = this.engine.formatTime(time);
         document.getElementById('complete-stars').textContent = '⭐'.repeat(stars);
         
+        // Play level complete fanfare!
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('levelComplete');
+        }
+        
         // Play victory announcement with sergeant voice!
         if (window.audioManager) {
             window.audioManager.announceVictory(this.currentLevelNum);
@@ -236,6 +297,11 @@ class HadGadyaGame {
         document.getElementById('game-over').classList.remove('hidden');
         document.getElementById('game-over-time').textContent = this.engine.formatTime(this.engine.totalTime);
         
+        // Play death sound!
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('death');
+        }
+        
         // Show the reason for game over
         const reasonElement = document.getElementById('game-over-reason');
         if (reasonElement) {
@@ -253,12 +319,28 @@ class HadGadyaGame {
         }
     }
     
-    showVictory() {
+    async showVictory() {
         this.engine.stop();
         this.hideAllScreens();
         document.getElementById('victory').classList.remove('hidden');
         document.getElementById('victory-time').textContent = this.engine.formatTime(this.engine.totalTime);
         document.getElementById('victory-stars').textContent = this.engine.getTotalStars();
+        
+        // Log victory and check for high score
+        const totalTime = this.engine.totalTime;
+        const totalStars = this.engine.getTotalStars();
+        
+        if (window.supabaseClient) {
+            window.supabaseClient.logVictory(this.selectedDifficulty, totalTime, totalStars);
+            
+            // Check if this is a new high score
+            const isNewHS = await window.supabaseClient.isNewHighScore(this.selectedDifficulty, totalTime);
+            if (isNewHS) {
+                document.getElementById('new-high-score-msg').classList.remove('hidden');
+                document.getElementById('name-input-container').classList.remove('hidden');
+                this.pendingHighScore = { difficulty: this.selectedDifficulty, time: totalTime, stars: totalStars };
+            }
+        }
         
         // Play final victory announcement
         if (window.audioManager) {
@@ -272,11 +354,107 @@ class HadGadyaGame {
         }, 3000);
     }
     
+    async submitScore() {
+        if (!this.pendingHighScore) return;
+        
+        const nameInput = document.getElementById('player-name-input');
+        const playerName = nameInput.value.trim() || 'Anonymous';
+        
+        if (window.supabaseClient) {
+            await window.supabaseClient.submitHighScore(
+                this.pendingHighScore.difficulty,
+                this.pendingHighScore.time,
+                this.pendingHighScore.stars,
+                playerName
+            );
+        }
+        
+        // Hide the input form and show confirmation
+        document.getElementById('name-input-container').classList.add('hidden');
+        document.getElementById('new-high-score-msg').textContent = '✅ Score submitted!';
+        this.pendingHighScore = null;
+    }
+    
+    async showHighScores() {
+        this.hideAllScreens();
+        document.getElementById('high-scores').classList.remove('hidden');
+        this.loadHighScores('normal');
+    }
+    
+    async filterHighScores(difficulty) {
+        // Update button states
+        document.querySelectorAll('[data-hs-difficulty]').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.hsDifficulty === difficulty) {
+                btn.classList.add('active');
+            }
+        });
+        this.loadHighScores(difficulty);
+    }
+    
+    async loadHighScores(difficulty) {
+        const listEl = document.getElementById('high-scores-list');
+        listEl.innerHTML = '<p style="text-align: center; color: #888;">Loading...</p>';
+        
+        if (!window.supabaseClient || !window.supabaseClient.enabled) {
+            listEl.innerHTML = '<p style="text-align: center; color: #888;">High scores not available (offline mode)</p>';
+            return;
+        }
+        
+        const scores = await window.supabaseClient.getHighScores(difficulty, 10);
+        
+        if (!scores || scores.length === 0) {
+            listEl.innerHTML = '<p style="text-align: center; color: #888;">No high scores yet. Be the first!</p>';
+            return;
+        }
+        
+        let html = '<table style="width: 100%; border-collapse: collapse; color: white;">';
+        html += '<tr style="border-bottom: 2px solid gold;"><th>#</th><th>Player</th><th>Time</th><th>Stars</th></tr>';
+        
+        scores.forEach((score, index) => {
+            const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : `${index + 1}`;
+            html += `<tr style="border-bottom: 1px solid #444;">
+                <td style="padding: 8px; text-align: center;">${medal}</td>
+                <td style="padding: 8px;">${this.escapeHtml(score.player_name)}</td>
+                <td style="padding: 8px; text-align: center;">${window.supabaseClient.formatTime(score.total_time)}</td>
+                <td style="padding: 8px; text-align: center;">${'⭐'.repeat(score.total_stars)}</td>
+            </tr>`;
+        });
+        
+        html += '</table>';
+        listEl.innerHTML = html;
+    }
+    
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+    
     startNewGame() {
         // Reset game state
         this.engine.totalTime = 0;
         this.engine.awakeness = 100;
+        this.isBonusLevel = false;  // Reset bonus level flag
         // Keep difficulty level for New Game+ (don't reset)
+        
+        // Show difficulty selection dialog
+        this.showStartGameDialog();
+    }
+    
+    showStartGameDialog() {
+        this.hideAllScreens();
+        document.getElementById('start-game-dialog').classList.remove('hidden');
+    }
+    
+    actuallyStartGame() {
+        // Log game start
+        if (window.supabaseClient) {
+            window.supabaseClient.logGameStart(this.selectedDifficulty);
+        }
+        
+        // Start from level 1
+        this.currentLevelNum = 1;
         this.selectLevel(1);
     }
     
@@ -306,6 +484,16 @@ class HadGadyaGame {
         document.getElementById('hud').style.display = 'flex';
         document.getElementById('game-controls').classList.remove('hidden');
         
+        // Play level start sound!
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('levelStart');
+        }
+        
+        // Log level start
+        if (window.supabaseClient) {
+            window.supabaseClient.logLevelStart(this.currentLevelNum, this.selectedDifficulty, this.engine.awakeness);
+        }
+        
         // Show verse during gameplay
         const config = this.levelConfigs[this.currentLevelNum - 1];
         const verseDisplay = document.getElementById('gameplay-verse');
@@ -316,9 +504,9 @@ class HadGadyaGame {
         document.getElementById('current-level').textContent = this.currentLevelNum;
         
         // Create level instance with difficulty multiplier
-        this.currentLevel = new config.class(this.engine);
+        this.currentLevel = new config.class(this.engine, this.selectedDifficulty);
         
-        // Apply difficulty multiplier to the level
+        // Apply difficulty multiplier to the level (for New Game+)
         if (this.currentLevel.applyDifficulty) {
             this.currentLevel.applyDifficulty(this.speedMultiplier);
         }
@@ -357,13 +545,27 @@ class HadGadyaGame {
             const time = this.engine.levelTime;
             const stars = this.engine.completeLevelWithStars(this.currentLevelNum, time);
             
+            // Log level completion
+            if (window.supabaseClient) {
+                window.supabaseClient.logLevelComplete(
+                    this.currentLevelNum, 
+                    this.selectedDifficulty, 
+                    time, 
+                    stars, 
+                    this.engine.awakeness
+                );
+            }
+            
             // Stop the music
             if (window.musicPlayer) {
                 window.musicPlayer.stop();
             }
             
-            if (this.currentLevelNum >= 10) {
-                // Game complete!
+            if (this.currentLevelNum >= 10 && !this.isBonusLevel) {
+                // Completed all 10 levels - show bonus level!
+                this.showBonusLevelIntro();
+            } else if (this.isBonusLevel) {
+                // Completed bonus level - now show victory!
                 this.showVictory();
             } else {
                 this.showLevelComplete(time, stars);
@@ -371,10 +573,85 @@ class HadGadyaGame {
         };
         
         this.engine.onGameOver = () => {
+            // Log game over
+            if (window.supabaseClient) {
+                window.supabaseClient.logGameOver(
+                    this.currentLevelNum,
+                    this.selectedDifficulty,
+                    this.engine.gameOverReason,
+                    this.engine.totalTime,
+                    this.engine.awakeness
+                );
+            }
             this.showGameOver();
         };
         
         // Engine will be started after verse finishes in startGameplay()
+    }
+    
+    showBonusLevelIntro() {
+        this.engine.stop();
+        this.hideAllScreens();
+        
+        // Play celebration sound
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('levelComplete');
+        }
+        
+        // Show the level complete screen with bonus level button
+        document.getElementById('level-complete').classList.remove('hidden');
+        document.getElementById('complete-time').textContent = this.engine.formatTime(this.engine.levelTime);
+        document.getElementById('complete-stars').textContent = '⭐⭐⭐';
+        
+        // Change next level button to bonus level
+        const nextBtn = document.getElementById('next-level-btn');
+        nextBtn.textContent = '🫓 BONUS ROUND!';
+        nextBtn.style.display = 'block';
+        nextBtn.onclick = () => { this.startBonusLevel(); };
+    }
+    
+    startBonusLevel() {
+        this.isBonusLevel = true;
+        this.currentLevelNum = 11;  // Track as level 11 for stats
+        
+        // Hide screens and show HUD
+        this.hideAllScreens();
+        document.getElementById('hud').style.display = 'flex';
+        document.getElementById('game-controls').classList.remove('hidden');
+        
+        // Update level display for bonus
+        document.getElementById('current-level').textContent = 'BONUS';
+        
+        // Show verse during gameplay
+        const verseDisplay = document.getElementById('gameplay-verse');
+        verseDisplay.innerHTML = '📜 "Find the Afikoman before the Seder can end!"';
+        verseDisplay.style.display = 'block';
+        
+        // Create bonus level instance
+        this.currentLevel = new BonusLevel(this.engine, this.selectedDifficulty);
+        
+        // Reset level timer
+        this.engine.levelTime = 0;
+        
+        // Start gameplay
+        if (window.musicPlayer) {
+            window.musicPlayer.setSpeed(1.2);  // Faster music for bonus!
+            window.musicPlayer.play();
+        }
+        
+        this.engine.onUpdate = (dt) => {
+            if (this.currentLevel) {
+                this.currentLevel.update(dt);
+            }
+        };
+        
+        this.engine.onRender = (ctx) => {
+            if (this.currentLevel) {
+                this.currentLevel.render(ctx);
+            }
+        };
+        
+        this.engine.start();
     }
     
     nextLevel() {
@@ -388,8 +665,12 @@ class HadGadyaGame {
     replayLevel() {
         // Reset awakeness to full when retrying
         this.engine.awakeness = 100;
-        // Show VS splash again when replaying
-        this.selectLevel(this.currentLevelNum);
+        // Reset bonus level flag if replaying from menu
+        if (!this.isBonusLevel) {
+            this.selectLevel(this.currentLevelNum);
+        } else {
+            this.startBonusLevel();
+        }
     }
     
     replayLevelQuick() {

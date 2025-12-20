@@ -1,3 +1,6 @@
+/* Import retro pixel font */
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 * {
     margin: 0;
     padding: 0;
@@ -5,15 +8,35 @@
 }
 
 body {
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    background: #0a0a0a;
+    background-image: 
+        radial-gradient(ellipse at center, #1a0a2e 0%, #0a0a0a 70%),
+        repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Press Start 2P', 'Courier New', monospace;
     overflow: auto;
     padding: 20px;
+    /* Subtle grid background */
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        linear-gradient(transparent 50%, rgba(0, 0, 0, 0.1) 50%);
+    background-size: 100% 4px;
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.3;
 }
 
 #game-container {
@@ -21,15 +44,40 @@ body {
     width: 800px;
     max-width: 95vw;
     height: 600px;
-    border: 4px solid #ffd700;
-    border-radius: 10px;
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    border: 6px solid #ff00ff;
+    border-radius: 15px;
+    box-shadow: 
+        0 0 20px #ff00ff,
+        0 0 40px #ff00ff,
+        0 0 60px rgba(255, 0, 255, 0.5),
+        inset 0 0 30px rgba(0, 0, 0, 0.5);
     overflow: hidden;
+    background: #000;
+    /* CRT curvature effect */
+    transform: perspective(1000px) rotateX(1deg);
+}
+
+#game-container::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(to bottom, 
+        rgba(255,255,255,0.1) 0%, 
+        transparent 3%, 
+        transparent 97%, 
+        rgba(0,0,0,0.3) 100%);
+    pointer-events: none;
+    border-radius: 10px;
 }
 
 #gameCanvas {
     display: block;
-    background: #2d5a27;
+    background: linear-gradient(180deg, #1a3a14 0%, #2d5a27 50%, #1a3a14 100%);
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
 }
 
 /* HUD */
@@ -42,11 +90,15 @@ body {
     justify-content: space-between;
     align-items: center;
     padding: 10px 15px;
-    background: linear-gradient(180deg, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0) 100%);
-    color: white;
-    font-size: 14px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.95) 0%, rgba(0,0,0,0.7) 70%, transparent 100%);
+    color: #00ffff;
+    font-size: 10px;
+    font-family: 'Press Start 2P', monospace;
     pointer-events: none;
     z-index: 10;
+    text-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff;
+    border-bottom: 2px solid #00ffff;
+    box-shadow: 0 2px 20px rgba(0, 255, 255, 0.3);
 }
 
 #awakeness-container {
@@ -57,23 +109,43 @@ body {
 
 #awakeness-bar {
     width: 120px;
-    height: 16px;
-    background: #333;
-    border: 2px solid #666;
-    border-radius: 8px;
+    height: 20px;
+    background: #111;
+    border: 3px solid #00ff00;
+    border-radius: 0;
     overflow: hidden;
+    box-shadow: 0 0 10px #00ff00, inset 0 0 10px rgba(0, 0, 0, 0.8);
 }
 
 #awakeness-fill {
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, #ff6b6b, #ffd93d, #6bcb77);
-    transition: width 0.3s ease;
+    background: repeating-linear-gradient(
+        90deg,
+        #00ff00 0px,
+        #00ff00 8px,
+        #00aa00 8px,
+        #00aa00 10px
+    );
+    transition: width 0.1s steps(20);
+    box-shadow: 0 0 15px #00ff00;
 }
 
 #awakeness-fill.low {
-    background: linear-gradient(90deg, #ff4757, #ff6b6b);
-    animation: pulse 0.5s ease-in-out infinite;
+    background: repeating-linear-gradient(
+        90deg,
+        #ff0000 0px,
+        #ff0000 8px,
+        #aa0000 8px,
+        #aa0000 10px
+    );
+    animation: flash-danger 0.3s steps(2) infinite;
+    box-shadow: 0 0 15px #ff0000;
+}
+
+@keyframes flash-danger {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
 }
 
 @keyframes pulse {
@@ -89,13 +161,17 @@ body {
 }
 
 #level-timer, #total-timer {
-    font-size: 14px;
-    color: #ffd700;
+    font-size: 8px;
+    color: #ff0;
+    text-shadow: 0 0 10px #ff0, 0 0 20px #ff0;
+    font-family: 'Press Start 2P', monospace;
+    letter-spacing: 1px;
 }
 
 #total-timer {
-    font-size: 16px;
-    font-weight: bold;
+    font-size: 10px;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff, 0 0 20px #0ff;
 }
 
 /* Game Controls */
@@ -111,20 +187,35 @@ body {
 }
 
 .control-btn {
-    padding: 8px 16px;
-    font-size: 12px;
+    padding: 10px 20px;
+    font-size: 10px;
     font-weight: bold;
-    color: #333;
-    background: linear-gradient(180deg, #ffd700 0%, #ffb700 100%);
-    border: 2px solid #996515;
-    border-radius: 5px;
+    font-family: 'Press Start 2P', monospace;
+    color: #000;
+    background: linear-gradient(180deg, #ff0 0%, #fa0 100%);
+    border: 4px solid #f80;
+    border-radius: 50px;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
+    text-transform: uppercase;
+    box-shadow: 
+        0 6px 0 #a50,
+        0 0 20px rgba(255, 170, 0, 0.5);
 }
 
 .control-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 0 #996515;
+    transform: translateY(-2px);
+    box-shadow: 
+        0 8px 0 #a50,
+        0 0 30px rgba(255, 170, 0, 0.8);
+    filter: brightness(1.2);
+}
+
+.control-btn:active {
+    transform: translateY(4px);
+    box-shadow: 
+        0 2px 0 #a50,
+        0 0 10px rgba(255, 170, 0, 0.3);
 }
 
 /* Pause Overlay */
@@ -161,18 +252,25 @@ body {
     height: auto;
     max-height: 95vh;
     overflow-y: auto;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: 
+        linear-gradient(135deg, #1a0a30 0%, #0a0a1a 50%, #1a0a30 100%);
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    color: white;
+    color: #fff;
     z-index: 100;
-    padding: 20px;
+    padding: 30px;
     text-align: center;
-    border: 4px solid #ffd700;
-    border-radius: 10px;
-    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+    border: 6px solid #ff00ff;
+    border-radius: 0;
+    box-shadow: 
+        0 0 30px #ff00ff,
+        0 0 60px rgba(255, 0, 255, 0.5),
+        inset 0 0 50px rgba(255, 0, 255, 0.1);
+    /* Arcade cabinet inner border */
+    outline: 3px solid #00ffff;
+    outline-offset: -12px;
 }
 
 .menu-screen.hidden {
@@ -180,21 +278,66 @@ body {
 }
 
 .menu-screen h1 {
-    font-size: clamp(28px, 8vw, 48px);
-    margin-bottom: 10px;
-    text-shadow: 3px 3px 0 #333;
+    font-size: clamp(20px, 6vw, 36px);
+    font-family: 'Press Start 2P', monospace;
+    margin-bottom: 15px;
+    color: #ff0;
+    text-shadow: 
+        0 0 10px #ff0,
+        0 0 20px #ff0,
+        0 0 40px #f80,
+        0 0 80px #f80,
+        4px 4px 0 #f00;
+    animation: title-glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes title-glow {
+    from { 
+        text-shadow: 
+            0 0 10px #ff0,
+            0 0 20px #ff0,
+            0 0 40px #f80,
+            0 0 80px #f80,
+            4px 4px 0 #f00;
+    }
+    to { 
+        text-shadow: 
+            0 0 20px #ff0,
+            0 0 40px #ff0,
+            0 0 60px #f80,
+            0 0 100px #f80,
+            4px 4px 0 #f00;
+    }
 }
 
 .menu-screen h2 {
-    font-size: clamp(18px, 5vw, 28px);
-    margin-bottom: 15px;
-    text-shadow: 2px 2px 0 #333;
+    font-size: clamp(12px, 4vw, 20px);
+    font-family: 'Press Start 2P', monospace;
+    margin-bottom: 20px;
+    color: #0ff;
+    text-shadow: 
+        0 0 10px #0ff,
+        0 0 20px #0ff,
+        3px 3px 0 #008;
 }
 
 .subtitle {
-    font-size: 16px;
+    font-size: 10px;
+    font-family: 'Press Start 2P', monospace;
     margin-bottom: 30px;
-    opacity: 0.9;
+    color: #0f0;
+    text-shadow: 0 0 10px #0f0;
+    opacity: 1;
+}
+
+.subtitle::after {
+    content: '_';
+    animation: blink 1s steps(2) infinite;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
 }
 
 .menu-buttons {
@@ -205,29 +348,54 @@ body {
 }
 
 .menu-btn {
-    padding: 12px 30px;
-    font-size: clamp(14px, 4vw, 18px);
+    padding: 15px 40px;
+    font-size: clamp(10px, 3vw, 14px);
     font-weight: bold;
-    color: #333;
-    background: linear-gradient(180deg, #ffd700 0%, #ffb700 100%);
-    border: 3px solid #996515;
-    border-radius: 10px;
+    font-family: 'Press Start 2P', monospace;
+    color: #000;
+    background: linear-gradient(180deg, #0ff 0%, #0aa 100%);
+    border: 4px solid #088;
+    border-radius: 0;
     cursor: pointer;
-    transition: all 0.2s ease;
-    text-shadow: 1px 1px 0 rgba(255,255,255,0.3);
-    box-shadow: 0 4px 0 #996515;
-    min-width: 150px;
+    transition: all 0.1s ease;
+    text-transform: uppercase;
+    box-shadow: 
+        0 6px 0 #055,
+        0 0 20px rgba(0, 255, 255, 0.5);
+    min-width: 200px;
     max-width: 90vw;
+    position: relative;
+    overflow: hidden;
+}
+
+.menu-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+    transition: left 0.5s ease;
+}
+
+.menu-btn:hover::before {
+    left: 100%;
 }
 
 .menu-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 0 #996515;
+    transform: translateY(-3px);
+    box-shadow: 
+        0 9px 0 #055,
+        0 0 40px rgba(0, 255, 255, 0.8);
+    filter: brightness(1.2);
 }
 
 .menu-btn:active {
-    transform: translateY(2px);
-    box-shadow: 0 2px 0 #996515;
+    transform: translateY(4px);
+    box-shadow: 
+        0 2px 0 #055,
+        0 0 10px rgba(0, 255, 255, 0.3);
 }
 
 .credits {
@@ -235,6 +403,81 @@ body {
     bottom: 20px;
     font-size: 12px;
     opacity: 0.7;
+}
+
+/* Difficulty Selector */
+.difficulty-selector {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    margin: 10px 0 15px 0;
+    padding: 15px;
+    background: #000;
+    border: 3px solid #ff0;
+    border-radius: 0;
+    box-shadow: 0 0 15px rgba(255, 255, 0, 0.3);
+}
+
+.difficulty-selector span {
+    font-weight: bold;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    color: #ff0;
+    text-shadow: 0 0 10px #ff0;
+    margin-right: 10px;
+}
+
+.difficulty-btn {
+    padding: 10px 15px;
+    font-size: clamp(8px, 2vw, 10px);
+    font-family: 'Press Start 2P', monospace;
+    border: 3px solid #444;
+    border-radius: 0;
+    background: #111;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.1s ease;
+    text-transform: uppercase;
+}
+
+.difficulty-btn:hover {
+    background: #222;
+    color: #fff;
+    border-color: #666;
+}
+
+.difficulty-btn.active {
+    background: #ff0;
+    color: #000;
+    font-weight: bold;
+    border-color: #ff0;
+    box-shadow: 0 0 15px #ff0;
+}
+
+.difficulty-btn[data-difficulty="easy"].active {
+    background: #0f0;
+    border-color: #0f0;
+    box-shadow: 0 0 15px #0f0;
+}
+
+.difficulty-btn[data-difficulty="hard"].active {
+    background: #f00;
+    border-color: #f00;
+    box-shadow: 0 0 15px #f00;
+}
+
+.difficulty-btn[data-difficulty="extreme"].active {
+    background: #f0f;
+    border-color: #f0f;
+    box-shadow: 0 0 15px #f0f;
+    animation: extreme-pulse 0.5s ease-in-out infinite alternate;
+}
+
+@keyframes extreme-pulse {
+    from { box-shadow: 0 0 15px #f0f; }
+    to { box-shadow: 0 0 30px #f0f, 0 0 50px #f0f; }
 }
 
 /* Level Select Grid */
@@ -252,38 +495,51 @@ body {
     aspect-ratio: 1;
     min-width: 50px;
     max-width: 80px;
-    background: rgba(255,255,255,0.2);
-    border: 2px solid rgba(255,255,255,0.3);
-    border-radius: 10px;
+    background: linear-gradient(135deg, #222 0%, #111 100%);
+    border: 3px solid #0ff;
+    border-radius: 0;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.1s ease;
+    box-shadow: 
+        0 0 10px rgba(0, 255, 255, 0.3),
+        inset 0 0 20px rgba(0, 255, 255, 0.1);
 }
 
 .level-card:hover {
-    background: rgba(255,255,255,0.3);
-    transform: scale(1.05);
+    background: linear-gradient(135deg, #333 0%, #222 100%);
+    transform: scale(1.1);
+    border-color: #ff0;
+    box-shadow: 
+        0 0 20px rgba(255, 255, 0, 0.5),
+        inset 0 0 30px rgba(255, 255, 0, 0.2);
 }
 
 .level-card.locked {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    border-color: #444;
+    box-shadow: none;
 }
 
 .level-card .level-num {
-    font-size: 24px;
+    font-size: 16px;
+    font-family: 'Press Start 2P', monospace;
     font-weight: bold;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
 }
 
 .level-card .level-stars {
-    font-size: 12px;
+    font-size: 10px;
 }
 
 .level-card .level-icon {
-    font-size: 28px;
+    font-size: 24px;
+    filter: drop-shadow(0 0 5px currentColor);
 }
 
 /* Instructions */
@@ -298,37 +554,49 @@ body {
     font-size: clamp(12px, 3vw, 16px);
 }
 
-.instructions p {
-    margin: 8px 0;
-}
+.instructions p {\n    margin: 8px 0;\n    font-family: 'Press Start 2P', monospace;\n    font-size: clamp(8px, 2vw, 10px);\n    line-height: 1.8;\n}
 
 /* Level Intro */
 #level-description {
-    font-size: clamp(14px, 3.5vw, 18px);
+    font-size: clamp(10px, 3vw, 12px);
+    font-family: 'Press Start 2P', monospace;
     margin: 15px 0;
     max-width: 90vw;
     padding: 0 10px;
+    line-height: 1.8;
+    color: #0ff;
+    text-shadow: 0 0 10px #0ff;
 }
 
 #level-instructions {
-    font-size: clamp(12px, 3vw, 14px);
+    font-size: clamp(8px, 2.5vw, 10px);
+    font-family: 'Press Start 2P', monospace;
     opacity: 0.8;
     margin-bottom: 15px;
     padding: 0 10px;
+    line-height: 1.6;
+    color: #ff0;
 }
 
 /* Verse Box */
 .verse-box {
-    background: rgba(0, 0, 0, 0.4);
-    padding: 12px 18px;
-    border-radius: 10px;
-    border-left: 4px solid #ffd700;
-    margin: 10px 0;
+    background: linear-gradient(180deg, #2a1a00 0%, #1a1000 100%);
+    padding: 15px 20px;
+    border-radius: 0;
+    border: 3px solid #d4af37;
+    border-left-width: 6px;
+    margin: 15px 0;
     max-width: 90vw;
     width: 100%;
     font-style: italic;
-    line-height: 1.4;
-    font-size: clamp(12px, 3vw, 14px);
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(8px, 2vw, 10px);
+    line-height: 1.8;
+    color: #d4af37;
+    text-shadow: 0 0 5px rgba(212, 175, 55, 0.5);
+    box-shadow: 
+        0 0 20px rgba(212, 175, 55, 0.3),
+        inset 0 0 30px rgba(0, 0, 0, 0.5);
 }
 
 /* Gameplay Verse Display - shows above game during gameplay */
@@ -337,17 +605,19 @@ body {
     width: 95vw;
     max-width: 800px;
     margin: 10px auto;
-    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-    padding: 10px 15px;
-    border-radius: 10px;
-    border: 2px solid #ffd700;
-    color: #fff;
-    font-size: clamp(11px, 2.5vw, 13px);
+    background: linear-gradient(90deg, #1a0a2e 0%, #0a0a1a 50%, #1a0a2e 100%);
+    padding: 12px 20px;
+    border-radius: 0;
+    border: 3px solid #ff0;
+    border-top-width: 0;
+    color: #ff0;
+    font-size: clamp(8px, 2vw, 10px);
+    font-family: 'Press Start 2P', monospace;
     font-style: italic;
     text-align: center;
-    line-height: 1.4;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5);
-    text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    line-height: 1.6;
+    box-shadow: 0 4px 20px rgba(255, 255, 0, 0.3);
+    text-shadow: 0 0 10px #ff0;
 }
 
 /* Level Complete */
@@ -463,17 +733,54 @@ body {
 
 /* Game Over and Victory special styling */
 #game-over {
-    background: linear-gradient(135deg, #4a4a4a 0%, #2a2a2a 100%);
+    background: 
+        repeating-linear-gradient(
+            45deg,
+            #1a0000 0px,
+            #1a0000 10px,
+            #0a0000 10px,
+            #0a0000 20px
+        );
+    border-color: #f00;
+    box-shadow: 
+        0 0 30px #f00,
+        0 0 60px rgba(255, 0, 0, 0.5);
+    outline-color: #f00;
+}
+
+#game-over h2 {
+    color: #f00;
+    text-shadow: 
+        0 0 10px #f00,
+        0 0 20px #f00,
+        0 0 40px #f00;
+    animation: game-over-flash 0.5s steps(2) infinite;
+}
+
+@keyframes game-over-flash {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
 }
 
 #victory {
-    background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #ffd700 100%);
-    animation: rainbow 3s ease-in-out infinite;
+    background: 
+        linear-gradient(135deg, #1a0a30 0%, #0a0a1a 50%, #1a0a30 100%);
+    border-color: #ff0;
+    box-shadow: 
+        0 0 30px #ff0,
+        0 0 60px rgba(255, 255, 0, 0.5);
+    outline-color: #0f0;
+    animation: victory-rainbow 2s linear infinite;
 }
 
-@keyframes rainbow {
-    0%, 100% { filter: hue-rotate(0deg); }
-    50% { filter: hue-rotate(30deg); }
+@keyframes victory-rainbow {
+    0% { border-color: #f00; box-shadow: 0 0 30px #f00, 0 0 60px #f00; }
+    16% { border-color: #ff0; box-shadow: 0 0 30px #ff0, 0 0 60px #ff0; }
+    33% { border-color: #0f0; box-shadow: 0 0 30px #0f0, 0 0 60px #0f0; }
+    50% { border-color: #0ff; box-shadow: 0 0 30px #0ff, 0 0 60px #0ff; }
+    66% { border-color: #00f; box-shadow: 0 0 30px #00f, 0 0 60px #00f; }
+    83% { border-color: #f0f; box-shadow: 0 0 30px #f0f, 0 0 60px #f0f; }
+    100% { border-color: #f00; box-shadow: 0 0 30px #f00, 0 0 60px #f00; }
 }
 
 /* Racing specific */
@@ -537,13 +844,13 @@ body {
 }
 
 .dpad-btn {
-    width: 60px;
-    height: 60px;
-    border-radius: 15px;
-    border: 3px solid #ffd700;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    font-size: 24px;
+    width: 65px;
+    height: 65px;
+    border-radius: 10px;
+    border: 4px solid #ff0;
+    background: linear-gradient(180deg, #333 0%, #111 100%);
+    color: #ff0;
+    font-size: 28px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -551,21 +858,36 @@ body {
     user-select: none;
     -webkit-user-select: none;
     touch-action: manipulation;
-    transition: all 0.1s ease;
+    transition: all 0.05s ease;
+    box-shadow: 
+        0 4px 0 #aa0,
+        0 0 15px rgba(255, 255, 0, 0.3);
 }
 
 .dpad-btn:active, .dpad-btn.pressed {
-    background: rgba(255, 215, 0, 0.5);
-    transform: scale(0.95);
+    background: linear-gradient(180deg, #ff0 0%, #aa0 100%);
+    color: #000;
+    transform: translateY(3px);
+    box-shadow: 
+        0 1px 0 #aa0,
+        0 0 25px rgba(255, 255, 0, 0.6);
 }
 
 .action-btn {
-    background: rgba(255, 100, 0, 0.7);
-    border-color: #ff6600;
+    background: linear-gradient(180deg, #500 0%, #300 100%);
+    border-color: #f00;
+    color: #f00;
+    box-shadow: 
+        0 4px 0 #800,
+        0 0 15px rgba(255, 0, 0, 0.3);
 }
 
 .action-btn:active, .action-btn.pressed {
-    background: rgba(255, 150, 50, 0.8);
+    background: linear-gradient(180deg, #f00 0%, #a00 100%);
+    color: #fff;
+    box-shadow: 
+        0 1px 0 #800,
+        0 0 25px rgba(255, 0, 0, 0.6);
 }
 
 /* Mobile Responsive Styles */

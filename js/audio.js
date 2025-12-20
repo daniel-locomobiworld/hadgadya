@@ -484,6 +484,202 @@ class AudioManager {
         return this.play(audioUrl);
     }
     
+    // Epic Mortal Kombat style theme for VS splash screen
+    playVSTheme() {
+        if (!this.synthContext || this.synthContext.state === 'closed') {
+            this.synthContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        const ctx = this.synthContext;
+        
+        // Resume context if suspended (browser autoplay policy)
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+        
+        // Store oscillators for stopping later
+        this.vsThemeNodes = [];
+        
+        const masterGain = ctx.createGain();
+        masterGain.gain.value = 0.3;
+        masterGain.connect(ctx.destination);
+        
+        // Tempo (BPM 140 - aggressive like MK)
+        const bpm = 140;
+        const beatTime = 60 / bpm;
+        const now = ctx.currentTime;
+        
+        // Epic bass drum pattern (four-on-the-floor with variations)
+        const kickPattern = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+        kickPattern.forEach(beat => {
+            const time = now + beat * beatTime;
+            const kick = ctx.createOscillator();
+            const kickGain = ctx.createGain();
+            kick.type = 'sine';
+            kick.frequency.setValueAtTime(150, time);
+            kick.frequency.exponentialRampToValueAtTime(40, time + 0.15);
+            kickGain.gain.setValueAtTime(0.8, time);
+            kickGain.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            kick.connect(kickGain);
+            kickGain.connect(masterGain);
+            kick.start(time);
+            kick.stop(time + 0.2);
+            this.vsThemeNodes.push(kick);
+        });
+        
+        // Aggressive synth bass riff (MK style)
+        const bassNotes = [
+            { note: 65.41, time: 0 },      // C2
+            { note: 65.41, time: 0.5 },
+            { note: 73.42, time: 1 },      // D2
+            { note: 73.42, time: 1.5 },
+            { note: 87.31, time: 2 },      // F2
+            { note: 87.31, time: 2.5 },
+            { note: 82.41, time: 3 },      // E2
+            { note: 82.41, time: 3.5 },
+        ];
+        
+        // Repeat the bass pattern
+        for (let repeat = 0; repeat < 4; repeat++) {
+            bassNotes.forEach(n => {
+                const time = now + (repeat * 4 + n.time) * beatTime;
+                const bass = ctx.createOscillator();
+                const bassGain = ctx.createGain();
+                const bassFilter = ctx.createBiquadFilter();
+                
+                bass.type = 'sawtooth';
+                bass.frequency.value = n.note;
+                
+                bassFilter.type = 'lowpass';
+                bassFilter.frequency.value = 400;
+                bassFilter.Q.value = 5;
+                
+                bassGain.gain.setValueAtTime(0.5, time);
+                bassGain.gain.exponentialRampToValueAtTime(0.1, time + beatTime * 0.4);
+                
+                bass.connect(bassFilter);
+                bassFilter.connect(bassGain);
+                bassGain.connect(masterGain);
+                bass.start(time);
+                bass.stop(time + beatTime * 0.45);
+                this.vsThemeNodes.push(bass);
+            });
+        }
+        
+        // Aggressive lead synth melody (iconic fighting game style)
+        const leadNotes = [
+            { note: 523.25, time: 0, dur: 0.25 },     // C5
+            { note: 587.33, time: 0.5, dur: 0.25 },   // D5
+            { note: 698.46, time: 1, dur: 0.5 },      // F5
+            { note: 659.25, time: 2, dur: 0.5 },      // E5
+            { note: 523.25, time: 3, dur: 0.25 },     // C5
+            { note: 587.33, time: 3.5, dur: 0.25 },   // D5
+            { note: 783.99, time: 4, dur: 1 },        // G5 - held
+            { note: 698.46, time: 6, dur: 0.5 },      // F5
+            { note: 659.25, time: 7, dur: 0.5 },      // E5
+        ];
+        
+        leadNotes.forEach(n => {
+            const time = now + n.time * beatTime;
+            const lead = ctx.createOscillator();
+            const lead2 = ctx.createOscillator();
+            const leadGain = ctx.createGain();
+            const leadFilter = ctx.createBiquadFilter();
+            
+            lead.type = 'square';
+            lead.frequency.value = n.note;
+            lead2.type = 'sawtooth';
+            lead2.frequency.value = n.note * 1.005; // Slight detune for thickness
+            
+            leadFilter.type = 'lowpass';
+            leadFilter.frequency.setValueAtTime(2000, time);
+            leadFilter.frequency.exponentialRampToValueAtTime(800, time + n.dur * beatTime);
+            
+            leadGain.gain.setValueAtTime(0.25, time);
+            leadGain.gain.exponentialRampToValueAtTime(0.01, time + n.dur * beatTime);
+            
+            lead.connect(leadFilter);
+            lead2.connect(leadFilter);
+            leadFilter.connect(leadGain);
+            leadGain.connect(masterGain);
+            lead.start(time);
+            lead2.start(time);
+            lead.stop(time + n.dur * beatTime);
+            lead2.stop(time + n.dur * beatTime);
+            this.vsThemeNodes.push(lead, lead2);
+        });
+        
+        // Hi-hats for energy
+        for (let i = 0; i < 32; i++) {
+            const time = now + i * beatTime * 0.5;
+            const noise = ctx.createBufferSource();
+            const noiseGain = ctx.createGain();
+            const hihatFilter = ctx.createBiquadFilter();
+            
+            const bufferSize = ctx.sampleRate * 0.05;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let j = 0; j < bufferSize; j++) {
+                data[j] = Math.random() * 2 - 1;
+            }
+            noise.buffer = buffer;
+            
+            hihatFilter.type = 'highpass';
+            hihatFilter.frequency.value = 8000;
+            
+            const accent = i % 2 === 1 ? 0.15 : 0.08;
+            noiseGain.gain.setValueAtTime(accent, time);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
+            
+            noise.connect(hihatFilter);
+            hihatFilter.connect(noiseGain);
+            noiseGain.connect(masterGain);
+            noise.start(time);
+            this.vsThemeNodes.push(noise);
+        }
+        
+        // Epic crash/gong at the start
+        const crash = ctx.createBufferSource();
+        const crashGain = ctx.createGain();
+        const crashFilter = ctx.createBiquadFilter();
+        
+        const crashBufferSize = ctx.sampleRate * 2;
+        const crashBuffer = ctx.createBuffer(1, crashBufferSize, ctx.sampleRate);
+        const crashData = crashBuffer.getChannelData(0);
+        for (let i = 0; i < crashBufferSize; i++) {
+            crashData[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.5));
+        }
+        crash.buffer = crashBuffer;
+        
+        crashFilter.type = 'bandpass';
+        crashFilter.frequency.value = 5000;
+        crashFilter.Q.value = 0.5;
+        
+        crashGain.gain.setValueAtTime(0.4, now);
+        crashGain.gain.exponentialRampToValueAtTime(0.01, now + 2);
+        
+        crash.connect(crashFilter);
+        crashFilter.connect(crashGain);
+        crashGain.connect(masterGain);
+        crash.start(now);
+        this.vsThemeNodes.push(crash);
+        
+        // Store master gain for stopping
+        this.vsThemeMaster = masterGain;
+        
+        // Return duration for reference
+        return 16 * beatTime;
+    }
+    
+    stopVSTheme() {
+        if (this.vsThemeMaster) {
+            const ctx = this.synthContext;
+            if (ctx) {
+                this.vsThemeMaster.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+            }
+        }
+        this.vsThemeNodes = [];
+    }
+    
     // Synthesized sound effects using Web Audio API (doesn't interrupt speech!)
     playSynthSound(type) {
         // Reuse shared AudioContext to avoid browser limits (max ~6 contexts)
@@ -936,6 +1132,227 @@ class AudioManager {
             osc1.stop(ctx.currentTime + 0.8);
             osc2.stop(ctx.currentTime + 0.5);
             osc3.stop(ctx.currentTime + 0.3);
+            
+        } else if (type === 'jump') {
+            // Classic platformer jump sound - rising tone
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.1);
+            
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.15);
+            
+        } else if (type === 'blip') {
+            // Menu selection blip
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'square';
+            osc.frequency.value = 660;
+            
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.05);
+            
+        } else if (type === 'select') {
+            // Menu select/confirm - two rising tones
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc1.type = 'square';
+            osc2.type = 'square';
+            osc1.frequency.value = 440;
+            osc2.frequency.value = 880;
+            
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            
+            osc1.connect(gain);
+            osc2.connect(gain);
+            gain.connect(ctx.destination);
+            osc1.start();
+            osc2.start(ctx.currentTime + 0.05);
+            osc1.stop(ctx.currentTime + 0.08);
+            osc2.stop(ctx.currentTime + 0.15);
+            
+        } else if (type === 'levelStart') {
+            // Level start fanfare - rising arpeggio
+            const notes = [262, 330, 392, 523]; // C major arpeggio
+            notes.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                
+                const startTime = ctx.currentTime + i * 0.08;
+                gain.gain.setValueAtTime(0.2, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.15);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.15);
+            });
+            
+        } else if (type === 'levelComplete') {
+            // Level complete fanfare - victory jingle
+            const notes = [523, 659, 784, 1047, 784, 1047]; // C5 E5 G5 C6 G5 C6
+            const durations = [0.1, 0.1, 0.1, 0.2, 0.1, 0.3];
+            let time = ctx.currentTime;
+            
+            notes.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                
+                gain.gain.setValueAtTime(0.2, time);
+                gain.gain.exponentialRampToValueAtTime(0.01, time + durations[i]);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(time);
+                osc.stop(time + durations[i] + 0.05);
+                
+                time += durations[i];
+            });
+            
+        } else if (type === 'damage') {
+            // Take damage - descending buzz
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(300, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.2);
+            
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+            
+        } else if (type === 'move') {
+            // Footstep/movement blip
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'triangle';
+            osc.frequency.value = 80 + Math.random() * 40;
+            
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.05);
+            
+        } else if (type === 'warp') {
+            // Warp/teleport sound
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(100, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(2000, ctx.currentTime + 0.15);
+            osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.3);
+            
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + 0.15);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.35);
+            
+        } else if (type === 'countdown') {
+            // Countdown beep
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'square';
+            osc.frequency.value = 440;
+            
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.1);
+            
+        } else if (type === 'go') {
+            // "GO!" sound - higher pitched
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'square';
+            osc.frequency.value = 880;
+            
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
+            
+        } else if (type === 'matzah') {
+            // Matzah pickup - special sparkle sound
+            const notes = [880, 1100, 1320, 1760];
+            notes.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                
+                const startTime = ctx.currentTime + i * 0.03;
+                gain.gain.setValueAtTime(0.15, startTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, startTime + 0.1);
+                
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(startTime);
+                osc.stop(startTime + 0.12);
+            });
+            
+        } else if (type === 'enemy') {
+            // Enemy approaching warning
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            osc.frequency.linearRampToValueAtTime(250, ctx.currentTime + 0.1);
+            osc.frequency.linearRampToValueAtTime(200, ctx.currentTime + 0.2);
+            
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.2);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.2);
         }
     }
     

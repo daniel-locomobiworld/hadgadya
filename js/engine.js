@@ -192,6 +192,18 @@ class GameEngine {
     
     addAwakeness(amount) {
         this.awakeness = Math.min(100, this.awakeness + amount);
+        // Play matzah pickup sound!
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('matzah');
+        }
+    }
+    
+    // Take damage - reduce awakeness with sound
+    takeDamage(amount) {
+        this.awakeness = Math.max(0, this.awakeness - amount);
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('damage');
+        }
     }
     
     setGameOverReason(reason) {
@@ -279,13 +291,50 @@ class GameEngine {
     }
     
     render() {
-        // Clear canvas
-        this.ctx.fillStyle = '#2d5a27';
-        this.ctx.fillRect(0, 0, this.width, this.height);
+        // Draw retro grid background
+        this.drawRetroBackground();
         
         // Level-specific render
         if (this.onRender) {
             this.onRender(this.ctx);
+        }
+        
+        // Add CRT scanline effect overlay
+        this.drawScanlines();
+    }
+    
+    drawRetroBackground() {
+        // Gradient background
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.height);
+        gradient.addColorStop(0, '#1a3a14');
+        gradient.addColorStop(0.5, '#2d5a27');
+        gradient.addColorStop(1, '#1a3a14');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.width, this.height);
+        
+        // Draw subtle grid
+        this.ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
+        this.ctx.lineWidth = 1;
+        const gridSize = 40;
+        for (let x = 0; x < this.width; x += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, 0);
+            this.ctx.lineTo(x, this.height);
+            this.ctx.stroke();
+        }
+        for (let y = 0; y < this.height; y += gridSize) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, y);
+            this.ctx.lineTo(this.width, y);
+            this.ctx.stroke();
+        }
+    }
+    
+    drawScanlines() {
+        // Subtle scanline effect
+        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
+        for (let y = 0; y < this.height; y += 4) {
+            this.ctx.fillRect(0, y, this.width, 2);
         }
     }
     
@@ -383,7 +432,11 @@ class GameEngine {
         this.ctx.font = `${size}px Arial`;
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
+        // Add glow effect
+        this.ctx.shadowColor = 'rgba(255, 255, 0, 0.5)';
+        this.ctx.shadowBlur = 10;
         this.ctx.fillText(emoji, x, y);
+        this.ctx.shadowBlur = 0;
     }
     
     drawRect(x, y, w, h, color) {
@@ -391,11 +444,35 @@ class GameEngine {
         this.ctx.fillRect(x, y, w, h);
     }
     
+    // Retro pixel-style rectangle with border
+    drawRetroRect(x, y, w, h, fillColor, borderColor = '#0ff') {
+        this.ctx.fillStyle = fillColor;
+        this.ctx.fillRect(x, y, w, h);
+        this.ctx.strokeStyle = borderColor;
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(x, y, w, h);
+        // Inner highlight
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+    }
+    
     drawCircle(x, y, radius, color) {
         this.ctx.fillStyle = color;
         this.ctx.beginPath();
         this.ctx.arc(x, y, radius, 0, Math.PI * 2);
         this.ctx.fill();
+    }
+    
+    // Glowing circle for powerups
+    drawGlowCircle(x, y, radius, color, glowColor) {
+        this.ctx.shadowColor = glowColor || color;
+        this.ctx.shadowBlur = 20;
+        this.ctx.fillStyle = color;
+        this.ctx.beginPath();
+        this.ctx.arc(x, y, radius, 0, Math.PI * 2);
+        this.ctx.fill();
+        this.ctx.shadowBlur = 0;
     }
     
     drawText(text, x, y, color = 'white', size = 16, align = 'center') {
@@ -406,6 +483,34 @@ class GameEngine {
         this.ctx.fillText(text, x, y);
     }
     
+    // Retro text with glow and shadow
+    drawRetroText(text, x, y, color = '#0ff', size = 16, align = 'center') {
+        this.ctx.font = `bold ${size}px "Press Start 2P", monospace`;
+        this.ctx.textAlign = align;
+        this.ctx.textBaseline = 'middle';
+        // Shadow
+        this.ctx.fillStyle = '#000';
+        this.ctx.fillText(text, x + 2, y + 2);
+        // Glow
+        this.ctx.shadowColor = color;
+        this.ctx.shadowBlur = 15;
+        this.ctx.fillStyle = color;
+        this.ctx.fillText(text, x, y);
+        this.ctx.shadowBlur = 0;
+    }
+    
+    // Floating score popup
+    drawFloatingText(text, x, y, color = '#ff0') {
+        this.ctx.font = 'bold 20px "Press Start 2P", monospace';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.shadowColor = color;
+        this.ctx.shadowBlur = 10;
+        this.ctx.fillStyle = color;
+        this.ctx.fillText(text, x, y);
+        this.ctx.shadowBlur = 0;
+    }
+    
     // Screen effects
     screenShake() {
         document.getElementById('game-container').classList.add('shake');
@@ -414,11 +519,30 @@ class GameEngine {
         }, 300);
     }
     
-    flashScreen(color = 'white') {
+    flashScreen(color = 'rgba(255, 255, 255, 0.6)') {
         this.ctx.fillStyle = color;
-        this.ctx.globalAlpha = 0.5;
+        this.ctx.globalAlpha = 0.6;
         this.ctx.fillRect(0, 0, this.width, this.height);
         this.ctx.globalAlpha = 1;
+    }
+    
+    // Retro explosion effect
+    drawExplosion(x, y, radius, progress) {
+        const colors = ['#ff0', '#f80', '#f00', '#f0f'];
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            const dist = radius * progress;
+            const px = x + Math.cos(angle) * dist;
+            const py = y + Math.sin(angle) * dist;
+            const size = (1 - progress) * 15;
+            this.ctx.fillStyle = colors[i % colors.length];
+            this.ctx.shadowColor = colors[i % colors.length];
+            this.ctx.shadowBlur = 10;
+            this.ctx.beginPath();
+            this.ctx.arc(px, py, size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        this.ctx.shadowBlur = 0;
     }
 }
 
@@ -431,19 +555,35 @@ class MatzahPowerup {
         this.collected = false;
         this.floatOffset = Math.random() * Math.PI * 2;
         this.awakenessBoost = 15;
+        this.pulseOffset = Math.random() * Math.PI * 2;
     }
     
     update(dt) {
         this.floatOffset += dt * 3;
+        this.pulseOffset += dt * 5;
     }
     
     render(ctx) {
         if (this.collected) return;
-        const floatY = Math.sin(this.floatOffset) * 3;
-        ctx.font = `${this.size}px Arial`;
+        const floatY = Math.sin(this.floatOffset) * 5;
+        const pulse = 1 + Math.sin(this.pulseOffset) * 0.15;
+        
+        // Draw glowing SQUARE behind (matzah is square!)
+        const glowSize = this.size * pulse;
+        ctx.shadowColor = '#0f0';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = 'rgba(0, 255, 0, 0.3)';
+        ctx.fillRect(this.x - glowSize * 0.6, this.y + floatY - glowSize * 0.6, glowSize * 1.2, glowSize * 1.2);
+        ctx.shadowBlur = 0;
+        
+        // Draw matzah emoji
+        ctx.font = `${this.size * pulse}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        ctx.shadowColor = '#ff0';
+        ctx.shadowBlur = 15;
         ctx.fillText('🫓', this.x, this.y + floatY);
+        ctx.shadowBlur = 0;
     }
     
     checkCollision(playerX, playerY, playerSize) {
@@ -500,9 +640,48 @@ class TopDownPlayer {
     }
     
     render(ctx) {
-        ctx.font = `${this.size}px Arial`;
+        // Draw player shadow (darker and more visible)
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.beginPath();
+        ctx.ellipse(this.x + 4, this.y + this.size/2, this.size/2 + 8, this.size/4 + 4, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw VERY LARGE SOLID circle behind player for maximum visibility
+        // Outer magenta glow ring - BIGGER
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 30;
+        ctx.fillStyle = '#ff00ff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size/2 + 18, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Inner solid yellow circle - HIGH CONTRAST
+        ctx.shadowColor = '#ffff00';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = '#ffff00';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size/2 + 10, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // White center for emoji visibility
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size/2 + 4, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw player emoji LARGER
+        ctx.font = `bold ${this.size + 8}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
+        
+        // Black outline for contrast
+        ctx.strokeStyle = '#000';
+        ctx.lineWidth = 5;
+        ctx.strokeText(this.emoji, this.x, this.y);
+        
+        // The emoji itself
+        ctx.fillStyle = '#ffffff';
         ctx.fillText(this.emoji, this.x, this.y);
     }
     
@@ -525,10 +704,13 @@ class BattleSystem {
         this.enemyEmoji = enemyEmoji;
         this.ctx = ctx;
         
+        // Pokemon-style stats
         this.playerHP = 150;
         this.playerMaxHP = 150;
+        this.playerLevel = 15;
         this.enemyHP = 180;
         this.enemyMaxHP = 180;
+        this.enemyLevel = 12;
         
         this.playerEffects = {};
         this.enemyEffects = {};
@@ -538,17 +720,26 @@ class BattleSystem {
         this.message = '';
         this.waitingForAnimation = false;
         
+        // Battle intro state
+        this.introPhase = 'slide_in'; // slide_in, announce, ready
+        this.introTimer = 0;
+        this.introDuration = 2.5;
+        
         // Animation state
         this.currentAnimation = null;
         this.animationTime = 0;
         this.animationDuration = 0;
         this.animationParticles = [];
         
-        // Character positions (on canvas)
-        this.playerPos = { x: 200, y: 280 };
-        this.enemyPos = { x: 600, y: 280 };
+        // Character positions (on canvas) - Pokemon style: player bottom-left, enemy top-right
+        this.playerPos = { x: 150, y: 380 };
+        this.enemyPos = { x: 620, y: 200 };
         this.playerShake = 0;
         this.enemyShake = 0;
+        
+        // Slide positions for intro
+        this.playerSlideX = -200;
+        this.enemySlideX = 1000;
         
         // Move button positions (in game area, bottom portion)
         this.moveButtons = [];
@@ -989,107 +1180,323 @@ class BattleSystem {
     }
     
     update(dt) {
+        // Update intro animation
+        if (this.introPhase !== 'ready') {
+            this.introTimer += dt;
+            if (this.introPhase === 'slide_in') {
+                // Slide characters in
+                this.playerSlideX = -200 + (this.playerPos.x + 200) * Math.min(1, this.introTimer / 0.8);
+                this.enemySlideX = 1000 - (1000 - this.enemyPos.x) * Math.min(1, this.introTimer / 0.8);
+                
+                if (this.introTimer > 1.0) {
+                    this.introPhase = 'announce';
+                    this.introTimer = 0;
+                    // Play battle start sound
+                    if (window.audioManager) {
+                        window.audioManager.playSynthSound('versus');
+                    }
+                }
+            } else if (this.introPhase === 'announce') {
+                if (this.introTimer > 1.5) {
+                    this.introPhase = 'ready';
+                    this.message = 'What will ' + this.playerName + ' do?';
+                }
+            }
+        }
+        
         this.updateAnimation(dt);
     }
     
     render(ctx) {
-        // Draw battle arena background (bottom portion for UI)
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 460, 800, 140);
+        // Draw Pokemon-style battle background
+        this.drawBattleBackground(ctx);
         
-        // Draw VS text
-        ctx.font = 'bold 40px Arial';
-        ctx.fillStyle = '#ff4444';
-        ctx.textAlign = 'center';
-        ctx.fillText('VS', 400, 300);
+        // Draw platforms/shadows under characters
+        this.drawPlatforms(ctx);
         
-        // Draw player (left side)
+        // Get character positions (use slide position during intro)
+        const playerX = this.introPhase === 'ready' ? this.playerPos.x : this.playerSlideX;
+        const enemyX = this.introPhase === 'ready' ? this.enemyPos.x : this.enemySlideX;
+        
+        // Draw player (left side, bottom) - LARGER like Pokemon
         const playerShakeX = (Math.random() - 0.5) * this.playerShake;
         const playerShakeY = (Math.random() - 0.5) * this.playerShake;
-        ctx.font = '80px Arial';
+        ctx.font = '100px Arial';
         ctx.textAlign = 'center';
-        ctx.fillText(this.playerEmoji, this.playerPos.x + playerShakeX, this.playerPos.y + playerShakeY);
+        ctx.textBaseline = 'middle';
+        ctx.fillText(this.playerEmoji, playerX + playerShakeX, this.playerPos.y + playerShakeY);
         
-        // Draw enemy (right side)
+        // Draw enemy (right side, top) - slightly smaller (further away perspective)
         const enemyShakeX = (Math.random() - 0.5) * this.enemyShake;
         const enemyShakeY = (Math.random() - 0.5) * this.enemyShake;
-        ctx.fillText(this.enemyEmoji, this.enemyPos.x + enemyShakeX, this.enemyPos.y + enemyShakeY);
+        ctx.font = '80px Arial';
+        ctx.fillText(this.enemyEmoji, enemyX + enemyShakeX, this.enemyPos.y + enemyShakeY);
         
-        // Draw HP bars
-        this.drawHPBar(ctx, 50, 180, this.playerName, this.playerHP, this.playerMaxHP, this.playerEmoji);
-        this.drawHPBar(ctx, 550, 180, this.enemyName, this.enemyHP, this.enemyMaxHP, this.enemyEmoji);
+        // Draw Pokemon-style HP bars
+        if (this.introPhase === 'ready' || this.introPhase === 'announce') {
+            this.drawPokemonHPBar(ctx, 450, 80, this.enemyName, this.enemyLevel, this.enemyHP, this.enemyMaxHP, false);
+            this.drawPokemonHPBar(ctx, 30, 420, this.playerName, this.playerLevel, this.playerHP, this.playerMaxHP, true);
+        }
         
         // Draw animations
         this.renderAnimation(ctx);
         
-        // Draw move buttons
-        if (this.isPlayerTurn && !this.waitingForAnimation && !this.battleOver) {
+        // Draw message box (Pokemon style - bottom)
+        this.drawMessageBox(ctx);
+        
+        // Draw move buttons during player turn
+        if (this.introPhase === 'ready' && this.isPlayerTurn && !this.waitingForAnimation && !this.battleOver) {
             this.renderMoveButtons(ctx);
         }
         
-        // Draw message
-        ctx.font = 'bold 20px Arial';
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.fillText(this.message, 600, 520);
+        // Draw intro text
+        if (this.introPhase === 'announce') {
+            ctx.save();
+            ctx.font = 'bold 28px "Press Start 2P", monospace';
+            ctx.fillStyle = '#fff';
+            ctx.textAlign = 'center';
+            ctx.shadowColor = '#000';
+            ctx.shadowBlur = 5;
+            ctx.fillText(`A wild ${this.enemyName} appeared!`, 400, 300);
+            ctx.restore();
+        }
     }
     
-    drawHPBar(ctx, x, y, name, hp, maxHP, emoji) {
-        // Background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-        ctx.fillRect(x, y, 200, 50);
-        ctx.strokeStyle = '#ffd700';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x, y, 200, 50);
+    drawBattleBackground(ctx) {
+        // Sky gradient
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, 300);
+        skyGrad.addColorStop(0, '#87CEEB');
+        skyGrad.addColorStop(1, '#E0F6FF');
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, 800, 300);
+        
+        // Ground/grass area
+        const groundGrad = ctx.createLinearGradient(0, 250, 0, 600);
+        groundGrad.addColorStop(0, '#7CBA5F');
+        groundGrad.addColorStop(0.3, '#5A9A3F');
+        groundGrad.addColorStop(1, '#4A8A2F');
+        ctx.fillStyle = groundGrad;
+        ctx.fillRect(0, 250, 800, 350);
+        
+        // Draw grass tufts
+        ctx.fillStyle = '#4A7A2F';
+        for (let i = 0; i < 30; i++) {
+            const x = (i * 27 + 10) % 800;
+            const y = 260 + (i * 17) % 200;
+            ctx.beginPath();
+            ctx.moveTo(x, y + 10);
+            ctx.lineTo(x - 3, y);
+            ctx.lineTo(x, y + 3);
+            ctx.lineTo(x + 3, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+        
+        // Battle arena line
+        ctx.strokeStyle = '#fff';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 10]);
+        ctx.beginPath();
+        ctx.moveTo(0, 450);
+        ctx.lineTo(800, 450);
+        ctx.stroke();
+        ctx.setLineDash([]);
+    }
+    
+    drawPlatforms(ctx) {
+        // Enemy platform (ellipse, top right) - perspective: smaller/higher
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(this.enemyPos.x, this.enemyPos.y + 50, 70, 20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw grass on enemy platform
+        ctx.fillStyle = '#6AAA4F';
+        ctx.beginPath();
+        ctx.ellipse(this.enemyPos.x, this.enemyPos.y + 48, 65, 18, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Player platform (ellipse, bottom left) - perspective: larger/lower
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+        ctx.beginPath();
+        ctx.ellipse(this.playerPos.x, this.playerPos.y + 60, 90, 25, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // Draw grass on player platform
+        ctx.fillStyle = '#6AAA4F';
+        ctx.beginPath();
+        ctx.ellipse(this.playerPos.x, this.playerPos.y + 57, 85, 23, 0, 0, Math.PI * 2);
+        ctx.fill();
+    }
+    
+    drawPokemonHPBar(ctx, x, y, name, level, hp, maxHP, isPlayer) {
+        // Pokemon-style HP bar panel
+        const width = 280;
+        const height = 70;
+        
+        // Panel background with gradient
+        ctx.save();
+        const panelGrad = ctx.createLinearGradient(x, y, x, y + height);
+        panelGrad.addColorStop(0, '#F8F8F8');
+        panelGrad.addColorStop(1, '#D8D8D8');
+        ctx.fillStyle = panelGrad;
+        
+        // Rounded rectangle for panel
+        ctx.beginPath();
+        ctx.roundRect(x, y, width, height, 10);
+        ctx.fill();
+        
+        // Border
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 3;
+        ctx.stroke();
         
         // Name
-        ctx.font = 'bold 16px Arial';
-        ctx.fillStyle = 'white';
+        ctx.font = 'bold 16px "Press Start 2P", Arial, sans-serif';
+        ctx.fillStyle = '#333';
         ctx.textAlign = 'left';
-        ctx.fillText(`${emoji} ${name}`, x + 10, y + 20);
+        ctx.fillText(name.toUpperCase(), x + 15, y + 22);
+        
+        // Level
+        ctx.font = 'bold 12px "Press Start 2P", Arial, sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText(`Lv${level}`, x + width - 15, y + 22);
+        
+        // HP label
+        ctx.font = 'bold 10px "Press Start 2P", Arial, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#F8B800';
+        ctx.fillText('HP', x + 15, y + 42);
         
         // HP bar background
         ctx.fillStyle = '#333';
-        ctx.fillRect(x + 10, y + 30, 180, 12);
+        ctx.fillRect(x + 45, y + 35, width - 60, 14);
         
         // HP bar fill
         const hpPercent = Math.max(0, hp / maxHP);
-        const hpColor = hpPercent > 0.5 ? '#4CAF50' : hpPercent > 0.2 ? '#ff9800' : '#f44336';
+        let hpColor;
+        if (hpPercent > 0.5) hpColor = '#48D848'; // Green
+        else if (hpPercent > 0.2) hpColor = '#F8C030'; // Yellow
+        else hpColor = '#F85848'; // Red
+        
         ctx.fillStyle = hpColor;
-        ctx.fillRect(x + 10, y + 30, 180 * hpPercent, 12);
+        ctx.fillRect(x + 47, y + 37, (width - 64) * hpPercent, 10);
+        
+        // HP numbers (only for player)
+        if (isPlayer) {
+            ctx.font = 'bold 11px "Press Start 2P", Arial, sans-serif';
+            ctx.textAlign = 'right';
+            ctx.fillStyle = '#333';
+            ctx.fillText(`${Math.max(0, Math.floor(hp))}/${maxHP}`, x + width - 15, y + 60);
+        }
+        
+        ctx.restore();
+    }
+    
+    drawMessageBox(ctx) {
+        // Pokemon-style message box at bottom
+        ctx.save();
+        
+        // Box background
+        const boxGrad = ctx.createLinearGradient(0, 520, 0, 600);
+        boxGrad.addColorStop(0, '#F8F8F8');
+        boxGrad.addColorStop(1, '#E0E0E0');
+        ctx.fillStyle = boxGrad;
+        ctx.fillRect(10, 520, 380, 70);
+        
+        // Border
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(10, 520, 380, 70);
+        
+        // Inner border
+        ctx.strokeStyle = '#666';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(15, 525, 370, 60);
+        
+        // Message text
+        ctx.font = '16px "Press Start 2P", Arial, sans-serif';
+        ctx.fillStyle = '#333';
+        ctx.textAlign = 'left';
+        
+        // Word wrap if needed
+        const words = this.message.split(' ');
+        let line = '';
+        let lineY = 550;
+        for (const word of words) {
+            const testLine = line + word + ' ';
+            if (ctx.measureText(testLine).width > 350) {
+                ctx.fillText(line, 25, lineY);
+                line = word + ' ';
+                lineY += 22;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, 25, lineY);
+        
+        ctx.restore();
     }
     
     renderMoveButtons(ctx) {
+        // Pokemon-style "Fight" menu on the right side
+        ctx.save();
+        
+        // Move selection box (right side, matches message box height)
+        const boxX = 400;
+        const boxY = 520;
+        const boxW = 390;
+        const boxH = 70;
+        
+        // Box background
+        const boxGrad = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
+        boxGrad.addColorStop(0, '#F8F8F8');
+        boxGrad.addColorStop(1, '#E0E0E0');
+        ctx.fillStyle = boxGrad;
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        
+        // Border
+        ctx.strokeStyle = '#333';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+        
+        // Draw 4 moves in 2x2 grid
+        const moveW = 185;
+        const moveH = 28;
+        const startX = boxX + 10;
+        const startY = boxY + 8;
+        
         for (let i = 0; i < this.moveButtons.length; i++) {
             const btn = this.moveButtons[i];
+            const col = i % 2;
+            const row = Math.floor(i / 2);
+            const mx = startX + col * moveW;
+            const my = startY + row * (moveH + 4);
+            
+            // Update button positions for click detection
+            btn.x = mx;
+            btn.y = my;
+            btn.width = moveW - 10;
+            btn.height = moveH;
+            
             const isHovered = this.hoveredButton === i;
             
-            // Button background
-            ctx.fillStyle = isHovered ? '#4a6fa5' : '#2c3e50';
-            ctx.fillRect(btn.x, btn.y, btn.width, btn.height);
+            // Selection arrow for hovered
+            if (isHovered) {
+                ctx.font = 'bold 14px Arial';
+                ctx.fillStyle = '#333';
+                ctx.textAlign = 'left';
+                ctx.fillText('▶', mx - 2, my + 18);
+            }
             
-            // Button border
-            ctx.strokeStyle = isHovered ? '#ffd700' : '#5a7a9a';
-            ctx.lineWidth = isHovered ? 3 : 2;
-            ctx.strokeRect(btn.x, btn.y, btn.width, btn.height);
-            
-            // Move emoji and name
-            ctx.font = 'bold 16px Arial';
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
-            ctx.fillText(`${btn.move.emoji} ${btn.move.name}`, btn.x + btn.width/2, btn.y + 20);
-            
-            // Description
-            ctx.font = '12px Arial';
-            ctx.fillStyle = '#aaa';
-            ctx.fillText(btn.move.description, btn.x + btn.width/2, btn.y + 38);
+            // Move name with type color
+            ctx.font = isHovered ? 'bold 13px Arial' : '13px Arial';
+            ctx.fillStyle = isHovered ? '#E83030' : '#333';
+            ctx.textAlign = 'left';
+            ctx.fillText(`${btn.move.emoji} ${btn.move.name}`, mx + 12, my + 18);
         }
         
-        // "Choose your move!" text
-        ctx.font = 'bold 18px Arial';
-        ctx.fillStyle = '#ffd700';
-        ctx.textAlign = 'center';
-        ctx.fillText('Choose your move!', 600, 560);
+        ctx.restore();
     }
     
     async playerAttack(moveIndex) {
@@ -1110,10 +1517,36 @@ class BattleSystem {
         
         await this.delay(this.animationDuration * 1000 + 300);
         
+        // Type effectiveness (random for fun)
+        const effectiveness = Math.random();
+        let damageMultiplier = 1;
+        let effectivenessMessage = '';
+        
+        if (effectiveness > 0.85) {
+            damageMultiplier = 2;
+            effectivenessMessage = "It's super effective!";
+            if (window.audioManager) window.audioManager.playSynthSound('powerup');
+        } else if (effectiveness < 0.15) {
+            damageMultiplier = 0.5;
+            effectivenessMessage = "It's not very effective...";
+        }
+        
+        // Critical hit chance
+        let criticalHit = Math.random() > 0.9;
+        if (criticalHit) {
+            damageMultiplier *= 1.5;
+            effectivenessMessage = 'A critical hit!';
+            if (window.audioManager) window.audioManager.playSynthSound('powerup');
+        }
+        
         // Apply move effects
         if (move.effect === 'heal') {
             this.playerHP = Math.min(this.playerMaxHP, this.playerHP + move.heal);
-            this.message = `${this.playerName} healed ${move.heal} HP!`;
+            // Also restore Awakeness!
+            if (this.engine && this.engine.addAwakeness) {
+                this.engine.addAwakeness(15);
+            }
+            this.message = `${this.playerName} restored ${move.heal} HP and Awakeness!`;
             if (window.audioManager) {
                 window.audioManager.playBattleSound('heal');
             }
@@ -1123,16 +1556,17 @@ class BattleSystem {
         } else if (move.effect === 'multi') {
             let totalDamage = 0;
             for (let i = 0; i < move.hits; i++) {
-                totalDamage += move.damage;
+                totalDamage += Math.floor(move.damage * damageMultiplier);
             }
             this.enemyHP -= totalDamage;
-            this.message = `Hit ${move.hits} times for ${totalDamage} damage!`;
+            this.message = `Hit ${move.hits} times! ${totalDamage} damage!`;
             if (window.audioManager) {
                 window.audioManager.playBattlePain();
             }
         } else {
-            this.enemyHP -= move.damage;
-            this.message = `Dealt ${move.damage} damage!`;
+            const finalDamage = Math.floor(move.damage * damageMultiplier);
+            this.enemyHP -= finalDamage;
+            this.message = effectivenessMessage || `${this.enemyName} took ${finalDamage} damage!`;
             if (window.audioManager) {
                 window.audioManager.playBattlePain();
             }
@@ -1148,17 +1582,23 @@ class BattleSystem {
             if (move.effect === 'itch') this.enemyEffects.itch = 2;
             if (move.effect === 'devour') {
                 this.enemyEffects.devour = true;
-                this.message += ' Defenses devoured!';
+                this.message += ' Defenses lowered!';
             }
         }
         
-        await this.delay(800);
+        await this.delay(1000);
         
         // Check if enemy defeated
         if (this.enemyHP <= 0) {
             this.enemyHP = 0;
-            this.message = `${this.enemyName} was defeated!`;
+            this.message = `${this.enemyName} fainted!`;
             this.battleOver = true;
+            // Victory sound
+            if (window.audioManager) {
+                window.audioManager.playSynthSound('levelComplete');
+            }
+            await this.delay(1500);
+            this.message = `${this.playerName} gained EXP. Points!`;
             await this.delay(1500);
             this.endBattle(true);
             return;
@@ -1170,35 +1610,54 @@ class BattleSystem {
     }
     
     async enemyTurn() {
-        // Check status effects
+        await this.delay(400);
+        
+        // Check status effects - reduced chance to skip enemy turn
         if (this.enemyEffects.sleep > 0) {
-            this.message = `${this.enemyName} is fast asleep!`;
-            this.enemyEffects.sleep--;
-            await this.delay(1000);
-            this.endTurn();
-            return;
+            // 60% chance to wake up early
+            if (Math.random() < 0.6) {
+                this.message = `${this.enemyName} woke up!`;
+                this.enemyEffects.sleep = 0;
+                await this.delay(800);
+            } else {
+                this.message = `${this.enemyName} is fast asleep! Zzz...`;
+                this.enemyEffects.sleep--;
+                await this.delay(1200);
+                this.endTurn();
+                return;
+            }
         }
         
         if (this.enemyEffects.stun > 0) {
-            this.message = `${this.enemyName} is stunned!`;
-            this.enemyEffects.stun--;
-            await this.delay(1000);
-            this.endTurn();
-            return;
+            // 50% chance to break free
+            if (Math.random() < 0.5) {
+                this.message = `${this.enemyName} broke through paralysis!`;
+                this.enemyEffects.stun = 0;
+                await this.delay(800);
+            } else {
+                this.message = `${this.enemyName} is fully paralyzed!`;
+                this.enemyEffects.stun--;
+                await this.delay(1200);
+                this.endTurn();
+                return;
+            }
         }
         
         // Apply damage over time effects
         if (this.enemyEffects.poison > 0) {
-            this.enemyHP -= 5;
-            this.message = `${this.enemyName} took poison damage! 💀`;
+            this.enemyHP -= 8;
+            this.message = `${this.enemyName} is hurt by poison!`;
             this.enemyEffects.poison--;
             this.enemyShake = 4;
-            await this.delay(800);
+            await this.delay(1000);
             
             if (this.enemyHP <= 0) {
                 this.enemyHP = 0;
-                this.message = `${this.enemyName} was defeated!`;
+                this.message = `${this.enemyName} fainted!`;
                 this.battleOver = true;
+                if (window.audioManager) window.audioManager.playSynthSound('levelComplete');
+                await this.delay(1500);
+                this.message = `${this.playerName} gained EXP. Points!`;
                 await this.delay(1500);
                 this.endBattle(true);
                 return;
@@ -1207,15 +1666,16 @@ class BattleSystem {
         
         if (this.enemyEffects.bleed > 0) {
             this.enemyHP -= 6;
-            this.message = `${this.enemyName} is bleeding! 🩸`;
+            this.message = `${this.enemyName} is losing blood!`;
             this.enemyEffects.bleed--;
             this.enemyShake = 3;
-            await this.delay(800);
+            await this.delay(1000);
             
             if (this.enemyHP <= 0) {
                 this.enemyHP = 0;
-                this.message = `${this.enemyName} was defeated!`;
+                this.message = `${this.enemyName} fainted!`;
                 this.battleOver = true;
+                if (window.audioManager) window.audioManager.playSynthSound('levelComplete');
                 await this.delay(1500);
                 this.endBattle(true);
                 return;
@@ -1223,31 +1683,33 @@ class BattleSystem {
         }
         
         if (this.enemyEffects.burn > 0) {
-            this.enemyHP -= 8;
-            this.message = `${this.enemyName} is burning! 🔥`;
+            this.enemyHP -= 10;
+            this.message = `${this.enemyName} is hurt by the burn!`;
             this.enemyEffects.burn--;
             this.enemyShake = 4;
-            await this.delay(800);
+            await this.delay(1000);
             
             if (this.enemyHP <= 0) {
                 this.enemyHP = 0;
-                this.message = `${this.enemyName} was defeated!`;
+                this.message = `${this.enemyName} fainted!`;
                 this.battleOver = true;
+                if (window.audioManager) window.audioManager.playSynthSound('levelComplete');
                 await this.delay(1500);
                 this.endBattle(true);
                 return;
             }
         }
         
-        // Enemy attack with animation
+        // Enemy moves (Pokemon-style names) - Goat fights back harder!
         const enemyMoves = [
-            { name: 'Scratch', emoji: '💥' },
-            { name: 'Bite', emoji: '🦷' },
-            { name: 'Hiss', emoji: '😾' },
-            { name: 'Pounce', emoji: '🐾' }
+            { name: 'Ram Attack', emoji: '💢', power: 22 },
+            { name: 'Headbutt', emoji: '💥', power: 25 },
+            { name: 'Horn Slash', emoji: '🌟', power: 28 },
+            { name: 'Hoof Stomp', emoji: '🐾', power: 20 },
+            { name: 'Wild Charge', emoji: '⚡', power: 30 }
         ];
         const enemyMove = enemyMoves[Math.floor(Math.random() * enemyMoves.length)];
-        let damage = 15 + Math.floor(Math.random() * 10);
+        let damage = enemyMove.power + Math.floor(Math.random() * 12);
         
         if (this.enemyEffects.devour) damage = Math.floor(damage * 0.6);
         if (this.enemyEffects.slow > 0) {
@@ -1258,9 +1720,9 @@ class BattleSystem {
         // Check blind/itch effects
         if (this.enemyEffects.blind > 0) {
             if (Math.random() < 0.5) {
-                this.message = `${this.enemyName} can't see in the darkness! 🌑`;
+                this.message = `${this.enemyName}'s attack missed!`;
                 this.enemyEffects.blind--;
-                await this.delay(1000);
+                await this.delay(1200);
                 this.endTurn();
                 return;
             }
@@ -1269,10 +1731,10 @@ class BattleSystem {
         
         if (this.enemyEffects.itch > 0) {
             if (Math.random() < 0.4) {
-                this.message = `${this.enemyName} is too itchy to attack! 🦟`;
+                this.message = `${this.enemyName} is flinching!`;
                 this.enemyHP -= 3;
                 this.enemyEffects.itch--;
-                await this.delay(1000);
+                await this.delay(1200);
                 this.endTurn();
                 return;
             }
@@ -1280,12 +1742,14 @@ class BattleSystem {
         }
         
         if (this.enemyEffects.confuse > 0) {
+            this.message = `${this.enemyName} is confused!`;
+            await this.delay(800);
             if (Math.random() < 0.5) {
-                this.message = `${this.enemyName} hurt itself in confusion! 🐸`;
-                this.enemyHP -= 10;
+                this.message = `It hurt itself in confusion!`;
+                this.enemyHP -= 12;
                 this.enemyShake = 5;
                 this.enemyEffects.confuse--;
-                await this.delay(1000);
+                await this.delay(1200);
                 this.endTurn();
                 return;
             }
@@ -1296,31 +1760,33 @@ class BattleSystem {
         
         // Enemy attack animation
         this.startAnimation('throw', enemyMove.emoji, false);
-        await this.delay(600);
+        await this.delay(700);
         
         // Check shield
         if (this.playerEffects.shield) {
-            this.message = `Staff of Moses blocked the attack! 🪄✨`;
+            this.message = `${this.playerName} protected itself!`;
             this.playerEffects.shield = false;
             if (window.audioManager) {
                 window.audioManager.playBattleSound('block');
             }
         } else {
             this.playerHP -= damage;
-            this.message = `${this.playerName} took ${damage} damage!`;
             this.playerShake = 6;
             if (window.audioManager) {
                 window.audioManager.playBattlePain();
             }
+            await this.delay(300);
+            this.message = `${this.playerName} took ${damage} damage!`;
         }
         
-        await this.delay(1000);
+        await this.delay(1200);
         
         // Check if player defeated
         if (this.playerHP <= 0) {
             this.playerHP = 0;
-            this.message = `${this.playerName} was defeated!`;
+            this.message = `${this.playerName} fainted!`;
             this.battleOver = true;
+            if (window.audioManager) window.audioManager.playSynthSound('death');
             await this.delay(1500);
             this.endBattle(false);
             return;
@@ -1338,7 +1804,7 @@ class BattleSystem {
         this.selectedMoves = shuffled.slice(0, 4);
         this.setupMoveButtons();
         
-        this.message = 'Choose your move!';
+        this.message = `What will ${this.playerName} do?`;
     }
     
     endBattle(playerWon) {

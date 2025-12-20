@@ -55,11 +55,10 @@
     <!-- Main Menu -->
     <div id="main-menu" class="menu-screen">
         <h1>🐐 חד גדיא 🐐</h1>
-        <h2>Had Gadya: The Passover Game</h2>
-        <p class="subtitle">Beat all 10 levels before you fall asleep at the Seder!</p>
         <div class="menu-buttons">
             <button id="start-game-btn" class="menu-btn">🎮 Start Game</button>
-            <button id="level-select-btn" class="menu-btn">📋 Level Select</button>
+            <button id="level-select-btn" class="menu-btn">📋 Practice Level</button>
+            <button id="high-scores-btn" class="menu-btn">🏆 High Scores</button>
             <button id="how-to-play-btn" class="menu-btn">❓ How To Play</button>
         </div>
         <p class="credits">A Passover Game for the Whole Family 🍷</p>
@@ -67,7 +66,14 @@
 
     <!-- Level Select -->
     <div id="level-select" class="menu-screen hidden">
-        <h2>📋 Level Select</h2>
+        <h2>📋 Practice Level</h2>
+        <div id="difficulty-selector" class="difficulty-selector">
+            <span>Difficulty:</span>
+            <button class="difficulty-btn" data-difficulty="easy">😊 Easy</button>
+            <button class="difficulty-btn active" data-difficulty="normal">😐 Normal</button>
+            <button class="difficulty-btn" data-difficulty="hard">😤 Hard</button>
+            <button class="difficulty-btn" data-difficulty="extreme">💀 Extreme</button>
+        </div>
         <div id="level-grid"></div>
         <button id="back-to-menu-btn" class="menu-btn">⬅️ Back to Menu</button>
     </div>
@@ -125,8 +131,46 @@
         <p>You completed the Had Gadya before falling asleep!</p>
         <p>Total Time: <span id="victory-time"></span></p>
         <p>Total Stars: <span id="victory-stars"></span>/30</p>
+        <p id="new-high-score-msg" class="hidden" style="color: gold; font-size: 1.3em;">🌟 NEW HIGH SCORE! 🌟</p>
+        <div id="name-input-container" class="hidden" style="margin: 15px 0;">
+            <label for="player-name-input" style="margin-right: 10px;">Enter your name:</label>
+            <input type="text" id="player-name-input" maxlength="20" placeholder="Your Name" style="padding: 8px; font-size: 1em; border-radius: 5px; border: 2px solid gold;">
+            <button id="submit-score-btn" class="menu-btn" style="margin-left: 10px; padding: 8px 15px;">Submit</button>
+        </div>
         <div class="menu-buttons">
             <button id="victory-menu-btn" class="menu-btn">🏠 Menu</button>
+        </div>
+    </div>
+
+    <!-- High Scores Screen -->
+    <div id="high-scores" class="menu-screen hidden">
+        <h2>🏆 High Scores</h2>
+        <div id="high-scores-difficulty" class="difficulty-selector" style="margin-bottom: 20px;">
+            <button class="difficulty-btn" data-hs-difficulty="easy">😊 Easy</button>
+            <button class="difficulty-btn active" data-hs-difficulty="normal">😐 Normal</button>
+            <button class="difficulty-btn" data-hs-difficulty="hard">😤 Hard</button>
+            <button class="difficulty-btn" data-hs-difficulty="extreme">💀 Extreme</button>
+        </div>
+        <div id="high-scores-list" style="background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; max-width: 500px; margin: 0 auto;">
+            <p style="text-align: center; color: #888;">Loading...</p>
+        </div>
+        <button id="back-from-scores-btn" class="menu-btn" style="margin-top: 20px;">⬅️ Back to Menu</button>
+    </div>
+
+    <!-- Start Game Dialog (Difficulty Selection Only) -->
+    <div id="start-game-dialog" class="menu-screen hidden">
+        <h2>🐐 Ready to Play? 🐐</h2>
+        <p class="subtitle" style="font-size: 1.2em; color: #ffd700; margin: 15px 0;">How fast can you complete the game so we can get on with the Seder?</p>
+        <div id="start-difficulty-selector" class="difficulty-selector" style="margin: 25px 0;">
+            <span>Difficulty:</span>
+            <button class="difficulty-btn start-diff-btn" data-difficulty="easy">😊 Easy</button>
+            <button class="difficulty-btn start-diff-btn active" data-difficulty="normal">😐 Normal</button>
+            <button class="difficulty-btn start-diff-btn" data-difficulty="hard">😤 Hard</button>
+            <button class="difficulty-btn start-diff-btn" data-difficulty="extreme">💀 Extreme</button>
+        </div>
+        <div class="menu-buttons">
+            <button id="start-game-go-btn" class="menu-btn" style="font-size: 1.3em; padding: 15px 40px;">▶️ Start!</button>
+            <button id="start-game-back-btn" class="menu-btn">⬅️ Back to Menu</button>
         </div>
     </div>
 
@@ -146,6 +190,7 @@
         </div>
     </div>
 
+    <script src="js/supabase.js?v=1"></script>
     <script src="js/audio.js?v=2"></script>
     <script src="js/engine.js?v=2"></script>
     <script src="js/vs-splash.js?v=2"></script>
@@ -159,6 +204,7 @@
     <script src="js/levels/level8.js?v=2"></script>
     <script src="js/levels/level9.js?v=2"></script>
     <script src="js/levels/level10.js?v=2"></script>
+    <script src="js/levels/bonus.js?v=1"></script>
     <script src="js/game.js?v=2"></script>
 </body>
 </html>

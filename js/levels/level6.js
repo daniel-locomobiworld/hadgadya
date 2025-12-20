@@ -2,12 +2,22 @@
 // Chase fire, put out burning Seder items! Items move around!
 
 class Level6 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Quench the Fire";
         this.description = "You are the Water! The Seder plate items are moving around - save them from the fire!";
         this.instructions = "Arrow keys/WASD to move. Catch fire 3 times, then extinguish ALL burning items!";
         this.icon = "💧";
+        
+        // Difficulty settings
+        this.difficultySettings = {
+            easy: { fireSpeed: 130, objectSpeed: 0.7 },
+            normal: { fireSpeed: 170, objectSpeed: 1.0 },
+            hard: { fireSpeed: 200, objectSpeed: 1.3 },
+            extreme: { fireSpeed: 240, objectSpeed: 1.6 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Player (Water)
         this.player = new TopDownPlayer(100, 500, '💧', 200);
@@ -16,9 +26,9 @@ class Level6 {
         this.fire = {
             x: 700,
             y: 100,
-            speed: 170,
+            speed: this.settings.fireSpeed,
             emoji: '🔥',
-            size: 40,
+            size: 55,  // Bigger fire for visibility!
             fleeTimer: 0,
             fleeDirection: { x: 0, y: 0 },
             pathfindTimer: 0,
@@ -29,15 +39,16 @@ class Level6 {
         };
         
         // Moving Seder plate items that fire can ignite!
+        const speedMult = this.settings.objectSpeed;
         this.burnableObjects = [
-            { x: 150, y: 180, vx: 60, vy: 40, emoji: '🥬', name: 'Maror', burning: false, burnTimer: 0, size: 28 },
-            { x: 400, y: 120, vx: -50, vy: 55, emoji: '🥗', name: 'Chazeret', burning: false, burnTimer: 0, size: 28 },
-            { x: 600, y: 280, vx: 45, vy: -60, emoji: '🍫', name: 'Charoset', burning: false, burnTimer: 0, size: 30 },
-            { x: 250, y: 350, vx: -55, vy: -45, emoji: '🌿', name: 'Karpas', burning: false, burnTimer: 0, size: 26 },
-            { x: 500, y: 450, vx: 70, vy: 30, emoji: '🍖', name: 'Zeroa', burning: false, burnTimer: 0, size: 32 },
-            { x: 680, y: 150, vx: -40, vy: 65, emoji: '🥚', name: 'Beitzah', burning: false, burnTimer: 0, size: 26, isEgg: true },
-            { x: 350, y: 520, vx: 55, vy: -50, emoji: '🫓', name: 'Matzah', burning: false, burnTimer: 0, size: 30 },
-            { x: 120, y: 420, vx: -65, vy: 35, emoji: '🧂', name: 'Salt Water', burning: false, burnTimer: 0, size: 24 }
+            { x: 150, y: 180, vx: 60 * speedMult, vy: 40 * speedMult, emoji: '🥬', name: 'Maror', burning: false, burnTimer: 0, size: 28 },
+            { x: 400, y: 120, vx: -50 * speedMult, vy: 55 * speedMult, emoji: '🥗', name: 'Chazeret', burning: false, burnTimer: 0, size: 28 },
+            { x: 600, y: 280, vx: 45 * speedMult, vy: -60 * speedMult, emoji: '🍫', name: 'Charoset', burning: false, burnTimer: 0, size: 30 },
+            { x: 250, y: 350, vx: -55 * speedMult, vy: -45 * speedMult, emoji: '🌿', name: 'Karpas', burning: false, burnTimer: 0, size: 26 },
+            { x: 500, y: 450, vx: 70 * speedMult, vy: 30 * speedMult, emoji: '🍖', name: 'Zeroa', burning: false, burnTimer: 0, size: 32 },
+            { x: 680, y: 150, vx: -40 * speedMult, vy: 65 * speedMult, emoji: '🥚', name: 'Beitzah', burning: false, burnTimer: 0, size: 26, isEgg: true },
+            { x: 350, y: 520, vx: 55 * speedMult, vy: -50 * speedMult, emoji: '🫓', name: 'Matzah', burning: false, burnTimer: 0, size: 30 },
+            { x: 120, y: 420, vx: -65 * speedMult, vy: 35 * speedMult, emoji: '🧂', name: 'Salt Water', burning: false, burnTimer: 0, size: 24 }
         ];
         
         // Walls (stationary, can catch fire)
@@ -58,9 +69,7 @@ class Level6 {
         // Steam effects
         this.steamParticles = [];
         
-        // Helper kids that block fire
-        this.kids = [];
-        this.initKids();
+        // No kids in this level - just seder plate objects!
         
         // Matzah powerups (also moving!)
         this.matzahPowerups = [
@@ -139,9 +148,6 @@ class Level6 {
         // Fire lights objects on fire!
         this.updateFireSpread(dt);
         
-        // Update Elijah helper
-        this.updateElijah(dt);
-        
         // Update burning objects
         this.updateBurningObjects(dt);
         
@@ -194,9 +200,15 @@ class Level6 {
                     this.createSplashEffect(obj.x, obj.y);
                     this.createSteamEffect(obj.x, obj.y);
                     
-                    // Splash sound
+                    // Splash/sizzle sound
                     if (window.audioManager) {
                         window.audioManager.playSynthSound('splash');
+                        // Also play a sizzle/steam sound
+                        setTimeout(() => {
+                            if (window.audioManager) {
+                                window.audioManager.playSynthSound('fire');
+                            }
+                        }, 100);
                     }
                     
                     // Bonus awakeness for combos
@@ -224,6 +236,10 @@ class Level6 {
                     this.displayMessage('💧 Extinguished the burning wall!');
                     this.engine.screenShake();
                     
+                    // Create splash and steam effects
+                    this.createSplashEffect(wall.x + wall.width/2, wall.y + wall.height/2);
+                    this.createSteamEffect(wall.x + wall.width/2, wall.y + wall.height/2);
+                    
                     if (window.audioManager) {
                         window.audioManager.playSynthSound('splash');
                     }
@@ -248,14 +264,18 @@ class Level6 {
         this.fire.timesExtinguished++;
         this.engine.screenShake();
         
+        // Splash sound!
         if (window.audioManager) {
             window.audioManager.playSynthSound('splash');
         }
         
+        // Cap display at 3/3 and change message
+        const displayCaught = Math.min(this.firesCaught, this.firesNeeded);
+        
         if (this.firesCaught >= this.firesNeeded) {
-            this.displayMessage(`🔥 Fire caught ${this.firesCaught}/${this.firesNeeded}! Now extinguish all burning objects!`);
+            this.displayMessage(`💧 ${displayCaught}/${this.firesNeeded} fire put out! Now put out all burning items!`);
         } else {
-            this.displayMessage(`💧 Got the fire! (${this.firesCaught}/${this.firesNeeded})`);
+            this.displayMessage(`💧 Fire put out! (${displayCaught}/${this.firesNeeded})`);
         }
         
         // Visual effects!
@@ -447,21 +467,6 @@ class Level6 {
             }
         }
         
-        // Kid collision (kids block fire!)
-        for (let kid of this.kids) {
-            const kidDx = newX - kid.x;
-            const kidDy = newY - kid.y;
-            const kidDist = Math.sqrt(kidDx * kidDx + kidDy * kidDy);
-            if (kidDist < 35) {
-                blocked = true;
-                // Bounce away from kid
-                this.fire.fleeDirection.x = kidDx / kidDist;
-                this.fire.fleeDirection.y = kidDy / kidDist;
-                this.fire.thinkTimer = 0;
-                break;
-            }
-        }
-        
         if (!blocked) {
             // Boundary check with smarter bouncing
             if (newX < 30 || newX > 770) {
@@ -539,14 +544,6 @@ class Level6 {
                 score -= 150;
             }
             
-            // Penalty for kids blocking
-            for (const kid of this.kids) {
-                const kidDist = Math.sqrt(Math.pow(testX - kid.x, 2) + Math.pow(testY - kid.y, 2));
-                if (kidDist < 50) {
-                    score -= 100;
-                }
-            }
-            
             // PENALTY for corners - fire should run around, not hide!
             const distFromCenterX = Math.abs(testX - 400);
             const distFromCenterY = Math.abs(testY - 325);
@@ -594,7 +591,7 @@ class Level6 {
                     
                     // Fire crackle sound
                     if (window.audioManager) {
-                        window.audioManager.playSynthSound('hit');
+                        window.audioManager.playSynthSound('fire');
                     }
                 }
             }
@@ -1129,58 +1126,38 @@ class Level6 {
             ctx.fill();
         }
         
-        // Draw Elijah helper
-        if (this.elijah) {
-            ctx.save();
-            ctx.font = '40px Arial';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.shadowColor = '#9b59b6';
-            ctx.shadowBlur = 20 + Math.sin(Date.now() * 0.005) * 10;
-            ctx.fillText(this.elijah.emoji, this.elijah.x, this.elijah.y);
-            
-            // Timer indicator
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#9b59b6';
-            ctx.fillText(`${Math.ceil(this.elijah.activeTime)}s`, this.elijah.x, this.elijah.y + 30);
-            ctx.restore();
-        }
-        
-        // Draw kids
-        for (let kid of this.kids) {
-            ctx.save();
-            ctx.font = `${kid.size}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            // Shield glow effect (kids are fire-proof!)
-            ctx.shadowColor = '#4fc3f7';
-            ctx.shadowBlur = 8;
-            ctx.fillText(kid.emoji, kid.x, kid.y);
-            
-            // Water droplet indicator
-            ctx.font = '12px Arial';
-            ctx.fillText('💧', kid.x + 15, kid.y - 15);
-            ctx.restore();
-        }
-        
         // Draw matzah powerups
         this.matzahPowerups.forEach(matzah => matzah.render(ctx));
         
-        // Draw main fire
+        // Draw main fire - larger with pulsing glow like water drop
         ctx.save();
-        const fireWobble = Math.sin(Date.now() * 0.01) * 3;
-        ctx.shadowColor = '#ff6600';
-        ctx.shadowBlur = 25 + Math.sin(Date.now() * 0.02) * 10;
-        ctx.font = `${this.fire.size}px Arial`;
+        const fireWobble = Math.sin(Date.now() * 0.01) * 4;
+        const firePulse = Math.sin(Date.now() * 0.008) * 5;
+        const bobY = Math.sin(Date.now() * 0.005) * 6;
+        
+        // Outer glow
+        ctx.shadowColor = '#ff3300';
+        ctx.shadowBlur = 40 + firePulse;
+        ctx.font = `${this.fire.size + firePulse}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.fire.emoji, this.fire.x + fireWobble, this.fire.y);
+        ctx.fillText(this.fire.emoji, this.fire.x + fireWobble, this.fire.y + bobY);
+        
+        // Inner glow layer
+        ctx.shadowColor = '#ffaa00';
+        ctx.shadowBlur = 20;
+        ctx.fillText(this.fire.emoji, this.fire.x + fireWobble, this.fire.y + bobY);
+        
+        // Sparkle effect
+        if (Math.floor(Date.now() / 200) % 2 === 0) {
+            ctx.font = '16px Arial';
+            ctx.fillText('✨', this.fire.x + 25, this.fire.y - 20 + bobY);
+        }
         
         // Exclamation when panicking
         if (this.fire.panicMode) {
-            ctx.font = '18px Arial';
-            ctx.fillText('😱', this.fire.x, this.fire.y - 30);
+            ctx.font = '22px Arial';
+            ctx.fillText('😱', this.fire.x, this.fire.y - 40 + bobY);
         }
         ctx.restore();
         
@@ -1194,7 +1171,8 @@ class Level6 {
         ctx.font = 'bold 14px Arial';
         ctx.fillStyle = 'white';
         ctx.textAlign = 'left';
-        ctx.fillText(`🔥 Fire caught: ${this.firesCaught}/${this.firesNeeded}`, 20, 75);
+        const displayCaught = Math.min(this.firesCaught, this.firesNeeded);
+        ctx.fillText(`💧 Fire put out: ${displayCaught}/${this.firesNeeded}`, 20, 75);
         
         // Count burning objects
         const burningCount = this.burnableObjects.filter(obj => obj.burning).length;
@@ -1211,12 +1189,6 @@ class Level6 {
             ctx.shadowBlur = 10;
             ctx.fillText(`COMBO x${this.combo}!`, 780, 85);
             ctx.restore();
-        }
-        
-        // Elijah helper indicator
-        if (this.elijah) {
-            ctx.fillStyle = '#9b59b6';
-            ctx.fillText(`🧙‍♂️ Elijah helping!`, 20, 115);
         }
         
         // Draw message
@@ -1237,7 +1209,7 @@ class Level6 {
             y: 100,
             speed: 160,
             emoji: '🔥',
-            size: 36,
+            size: 55,
             fleeTimer: 0,
             fleeDirection: { x: 0, y: 0 },
             pathfindTimer: 0,
@@ -1249,14 +1221,14 @@ class Level6 {
             obj.burning = false;
             obj.burnTimer = 0;
         });
-        this.kids = [];
-        this.initKids();
         this.matzahPowerups = [
             new MatzahPowerup(300, 150),
             new MatzahPowerup(580, 500),
             new MatzahPowerup(100, 250)
         ];
         this.fireParticles = [];
+        this.splashEffects = [];
+        this.steamParticles = [];
         this.firesCaught = 0;
         this.complete = false;
         this.showMessage = false;

@@ -2,12 +2,22 @@
 // 2D Racing Cart Game with WINDING ROAD
 
 class Level9 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Death Race";
         this.description = "You are the Angel of Death! Chase down the fleeing Butcher on the winding road!";
         this.instructions = "← → to steer, ↑ to accelerate! Go FAST to catch the Butcher!";
         this.icon = "💀";
+        
+        // Difficulty settings - HARDER!
+        this.difficultySettings = {
+            easy: { enemySpeed: 200, enemyMaxSpeed: 260 },
+            normal: { enemySpeed: 240, enemyMaxSpeed: 310 },
+            hard: { enemySpeed: 280, enemyMaxSpeed: 360 },
+            extreme: { enemySpeed: 330, enemyMaxSpeed: 420 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Track - now winding!
         this.trackWidth = 280;
@@ -16,16 +26,16 @@ class Level9 {
         this.trackCurveTarget = 0;
         this.trackCurveSpeed = 0;
         
-        // Player (Angel of Death)
+        // Player (Angel of Death) - needs boosts to catch butcher!
         this.player = {
             x: 400,
             y: 450,
             width: 40,
             height: 60,
-            speed: 100,  // Start with some speed
-            maxSpeed: 400,  // Base max speed - NOT enough to catch butcher alone!
-            acceleration: 250,  // Good acceleration
-            deceleration: 120,  // Moderate deceleration
+            speed: 80,   // Slower start - need boosts!
+            maxSpeed: 380,  // Slightly lower base max
+            acceleration: 220,  // Slightly slower acceleration
+            deceleration: 140,  // More deceleration
             steerSpeed: 250,
             emoji: '💀',
             spinning: false,
@@ -42,8 +52,8 @@ class Level9 {
             y: 200,
             width: 40,
             height: 60,
-            speed: 200, // Fast base speed - faster than player's base max!
-            maxSpeed: 260,
+            speed: this.settings.enemySpeed, // Fast base speed - faster than player's base max!
+            maxSpeed: this.settings.enemyMaxSpeed,
             emoji: '🧑‍🍳',
             wobble: 0,
             panic: 0 // Gets faster when you get close!
@@ -54,7 +64,7 @@ class Level9 {
         this.scrollPosition = 0;
         
         // Distance tracking - THE KEY TO WINNING
-        this.distanceToEnemy = 280; // Start far from butcher
+        this.distanceToEnemy = 320; // Start FARTHER from butcher!
         this.catchProgress = 0; // 0-100, reach 100 to catch!
         
         // Obstacles on track
@@ -64,9 +74,9 @@ class Level9 {
         // Boost pickups
         this.boosts = [];
         
-        // WINE SPILLS - Butcher drops wine to make you spin out!
+        // WINE SPILLS - Butcher drops wine MORE often!
         this.wineSpills = [];
-        this.wineSpillTimer = 2; // First spill after 2 seconds
+        this.wineSpillTimer = 1.5; // First spill after 1.5 seconds (was 2)
         
         // Matzah powerups (for awakeness)
         this.matzahPowerups = [];
@@ -144,9 +154,9 @@ class Level9 {
         this.scrollPosition += this.scrollSpeed * dt;
         
         // BUTCHER AI - He ALWAYS tries to ESCAPE!
-        // Butcher speeds up when you get close (panic!)
-        this.enemy.panic = Math.max(0, 1 - this.distanceToEnemy / 200);
-        const butcherSpeed = this.enemy.speed + this.enemy.panic * 50; // Big panic boost when close
+        // Butcher speeds up when you get close (panic!) - MORE PANIC!
+        this.enemy.panic = Math.max(0, 1 - this.distanceToEnemy / 180);
+        const butcherSpeed = this.enemy.speed + this.enemy.panic * 70; // Bigger panic boost!
         
         // THE CHASE - Butcher is ALWAYS driving forward!
         // Distance changes based on relative speeds
@@ -191,7 +201,7 @@ class Level9 {
                 flash: 0, 
                 type: 'danger' 
             });
-            this.wineSpillTimer = 1.5 + Math.random() * 2; // Drop wine every 1.5-3.5 seconds
+            this.wineSpillTimer = 1.0 + Math.random() * 1.5; // Drop wine every 1-2.5 seconds (was 1.5-3.5)
             
             // Visual feedback - butcher throws wine
             if (this.distanceToEnemy < 200) {
@@ -231,11 +241,11 @@ class Level9 {
             return wine.y < 700 && wine.opacity > 0.2;
         });
         
-        // Spawn obstacles (less frequent!)
+        // Spawn obstacles (more frequent!)
         this.obstacleSpawnTimer -= dt;
         if (this.obstacleSpawnTimer <= 0 && this.player.speed > 50) {
             this.spawnObstacle();
-            this.obstacleSpawnTimer = 2.5 + Math.random() * 2.0; // Even less frequent: 2.5-4.5 seconds
+            this.obstacleSpawnTimer = 1.8 + Math.random() * 1.5; // More frequent: 1.8-3.3 seconds
         }
         
         // Update invincibility timer

@@ -2,12 +2,22 @@
 // Tank Battle - Stick Tank vs Dog Tank - Best of 5 Rounds!
 
 class Level4 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Tank Battle";
         this.description = "Best of 5 tank battle! First to win 3 rounds defeats the dog!";
         this.instructions = "Arrow keys to move, SPACE to fire!";
         this.icon = "🪵";
+        
+        // Difficulty settings
+        this.difficultySettings = {
+            easy: { enemySpeedBonus: 0, enemyHPBonus: 0 },
+            normal: { enemySpeedBonus: 15, enemyHPBonus: 20 },
+            hard: { enemySpeedBonus: 25, enemyHPBonus: 35 },
+            extreme: { enemySpeedBonus: 40, enemyHPBonus: 50 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Round tracking
         this.playerWins = 0;
@@ -50,14 +60,14 @@ class Level4 {
         };
         
         // Enemy tank (Dog) - Gets stronger each round!
-        const roundBonus = (this.currentRound - 1) * 20;
+        const roundBonus = (this.currentRound - 1) * this.settings.enemyHPBonus;
         this.enemy = {
             x: 650,
             y: 100,
             width: 50,
             height: 50,
             angle: Math.PI/2,
-            speed: 100 + this.currentRound * 15, // Faster each round
+            speed: 100 + this.currentRound * this.settings.enemySpeedBonus, // Faster each round
             hp: 120 + roundBonus,
             maxHp: 120 + roundBonus,
             shootCooldown: 0,
@@ -118,7 +128,7 @@ class Level4 {
                     }
                 }
             } while (!valid);
-            this.wineGlasses.push({ x, y, collected: false, size: 25 });
+            this.wineGlasses.push({ x, y, collected: false, size: 25, respawnTimer: 0 });
         }
         
         // Potato Kugel - speed boost!
@@ -137,7 +147,7 @@ class Level4 {
                     }
                 }
             } while (!valid);
-            this.kugels.push({ x, y, collected: false, size: 25 });
+            this.kugels.push({ x, y, collected: false, size: 25, respawnTimer: 0 });
         }
         
         // Matzah Brei - rapid fire!
@@ -156,8 +166,31 @@ class Level4 {
                     }
                 }
             } while (!valid);
-            this.matzahBreis.push({ x, y, collected: false, size: 25 });
+            this.matzahBreis.push({ x, y, collected: false, size: 25, respawnTimer: 0 });
         }
+        
+        // BONES - slow down the dog when he picks them up!
+        this.bones = [];
+        for (let i = 0; i < 3; i++) {
+            let x, y, valid;
+            do {
+                x = 100 + Math.random() * 600;
+                y = 100 + Math.random() * 400;
+                valid = true;
+                for (let wall of this.walls) {
+                    if (x >= wall.x - 30 && x <= wall.x + wall.width + 30 &&
+                        y >= wall.y - 30 && y <= wall.y + wall.height + 30) {
+                        valid = false;
+                        break;
+                    }
+                }
+            } while (!valid);
+            this.bones.push({ x, y, collected: false, size: 30, respawnTimer: 0 });
+        }
+        
+        // Dog slow effect
+        this.dogSlowTimer = 0;
+        this.dogSlowAmount = 1.0;
         
         this.roundOver = false;
     }
@@ -293,6 +326,50 @@ class Level4 {
         const playerCenterX = this.player.x + this.player.width/2;
         const playerCenterY = this.player.y + this.player.height/2;
         
+        // Update power-up respawn timers
+        this.wineGlasses.forEach(wine => {
+            if (wine.collected && wine.respawnTimer > 0) {
+                wine.respawnTimer -= dt;
+                if (wine.respawnTimer <= 0) {
+                    wine.collected = false;
+                }
+            }
+        });
+        this.kugels.forEach(kugel => {
+            if (kugel.collected && kugel.respawnTimer > 0) {
+                kugel.respawnTimer -= dt;
+                if (kugel.respawnTimer <= 0) {
+                    kugel.collected = false;
+                }
+            }
+        });
+        this.matzahBreis.forEach(brei => {
+            if (brei.collected && brei.respawnTimer > 0) {
+                brei.respawnTimer -= dt;
+                if (brei.respawnTimer <= 0) {
+                    brei.collected = false;
+                }
+            }
+        });
+        
+        // Bone respawn timer
+        this.bones.forEach(bone => {
+            if (bone.collected && bone.respawnTimer > 0) {
+                bone.respawnTimer -= dt;
+                if (bone.respawnTimer <= 0) {
+                    bone.collected = false;
+                }
+            }
+        });
+        
+        // Dog slow timer decay
+        if (this.dogSlowTimer > 0) {
+            this.dogSlowTimer -= dt;
+            if (this.dogSlowTimer <= 0) {
+                this.dogSlowAmount = 1.0; // Reset to full speed
+            }
+        }
+        
         this.wineGlasses.forEach(wine => {
             if (!wine.collected) {
                 const dx = playerCenterX - wine.x;
@@ -300,6 +377,7 @@ class Level4 {
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist < 35) {
                     wine.collected = true;
+                    wine.respawnTimer = 30 + Math.random() * 15; // 30-45 seconds
                     this.player.speedModifier = 0.5; // 50% speed
                     this.player.speed = this.player.baseSpeed * 0.5;
                     this.player.speedModifierTimer = 4; // 4 seconds
@@ -319,6 +397,7 @@ class Level4 {
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist < 35) {
                     kugel.collected = true;
+                    kugel.respawnTimer = 30 + Math.random() * 15; // 30-45 seconds
                     this.player.speedModifier = 1.6; // 60% faster
                     this.player.speed = this.player.baseSpeed * 1.6;
                     this.player.speedModifierTimer = 5; // 5 seconds
@@ -340,6 +419,7 @@ class Level4 {
                 const dist = Math.sqrt(dx*dx + dy*dy);
                 if (dist < 35) {
                     brei.collected = true;
+                    brei.respawnTimer = 30 + Math.random() * 15; // 30-45 seconds
                     this.player.rapidFire = true;
                     this.player.rapidFireTimer = 6; // 6 seconds of rapid fire
                     this.displayMessage('🍳 Matzah Brei! RAPID FIRE!');
@@ -440,11 +520,21 @@ class Level4 {
         if (this.canMoveTo(newX, newY, this.player.width, this.player.height)) {
             this.player.x = newX;
             this.player.y = newY;
+        } else if (dx !== 0 || dy !== 0) {
+            // BOUNCE OFF WALLS - push player back 5 pixels in opposite direction
+            const pushX = -Math.cos(this.player.angle) * 5;
+            const pushY = -Math.sin(this.player.angle) * 5;
+            if (this.canMoveTo(this.player.x + pushX, this.player.y + pushY, this.player.width, this.player.height)) {
+                this.player.x += pushX;
+                this.player.y += pushY;
+            }
         }
         
-        // Keep in bounds
-        this.player.x = Math.max(0, Math.min(750, this.player.x));
-        this.player.y = Math.max(50, Math.min(550, this.player.y));
+        // Keep in bounds (with bounce)
+        if (this.player.x <= 0) this.player.x = 5;
+        if (this.player.x >= 750) this.player.x = 745;
+        if (this.player.y <= 50) this.player.y = 55;
+        if (this.player.y >= 550) this.player.y = 545;
         
         // Shooting - faster with powerups!
         this.player.shootCooldown -= dt;
@@ -467,7 +557,7 @@ class Level4 {
         if (this.enemy.confusedDuration > 0) {
             // Dog is confused! Drive in random direction
             this.enemy.confusedDuration -= dt;
-            const moveSpeed = this.enemy.speed;
+            const moveSpeed = this.enemy.speed * this.dogSlowAmount;
             const moveX = Math.cos(this.enemy.confusedAngle) * moveSpeed * dt;
             const moveY = Math.sin(this.enemy.confusedAngle) * moveSpeed * dt;
             
@@ -564,7 +654,7 @@ class Level4 {
         }
         
         let moveX = 0, moveY = 0;
-        const moveSpeed = this.enemy.speed;
+        const moveSpeed = this.enemy.speed * this.dogSlowAmount;
         
         if (this.enemy.aiState === 'chase') {
             moveX = Math.cos(this.enemy.angle) * moveSpeed * dt;
@@ -608,14 +698,70 @@ class Level4 {
         this.enemy.x = Math.max(0, Math.min(750, this.enemy.x));
         this.enemy.y = Math.max(50, Math.min(550, this.enemy.y));
         
+        // CORNER DETECTION - if near multiple walls, escape toward center!
+        const nearLeftWall = this.enemy.x <= 60;
+        const nearRightWall = this.enemy.x >= 700;
+        const nearTopWall = this.enemy.y <= 100;
+        const nearBottomWall = this.enemy.y >= 510;
+        const inCorner = (nearLeftWall || nearRightWall) && (nearTopWall || nearBottomWall);
+        
+        if (inCorner && this.enemy.aiState !== 'escapeCorner') {
+            // Force escape toward center!
+            this.enemy.aiState = 'escapeCorner';
+            this.enemy.aiTimer = 1.0; // Escape for 1 second
+            const centerX = 400;
+            const centerY = 300;
+            this.enemy.escapeAngle = Math.atan2(centerY - this.enemy.y, centerX - this.enemy.x);
+            // Add random offset
+            this.enemy.escapeAngle += (Math.random() - 0.5) * 0.8;
+        }
+        
+        if (this.enemy.aiState === 'escapeCorner') {
+            const escapeSpeed = this.enemy.speed * 1.3; // Faster to escape
+            const escapeX = Math.cos(this.enemy.escapeAngle) * escapeSpeed * dt;
+            const escapeY = Math.sin(this.enemy.escapeAngle) * escapeSpeed * dt;
+            
+            if (this.canMoveTo(this.enemy.x + escapeX, this.enemy.y + escapeY, this.enemy.width, this.enemy.height)) {
+                this.enemy.x += escapeX;
+                this.enemy.y += escapeY;
+            }
+        }
+        
+        // Check if dog picks up a bone - slows him down!
+        for (let bone of this.bones) {
+            if (!bone.collected) {
+                const bx = bone.x - this.enemy.x - this.enemy.width/2;
+                const by = bone.y - this.enemy.y - this.enemy.height/2;
+                if (Math.sqrt(bx*bx + by*by) < 40) {
+                    bone.collected = true;
+                    bone.respawnTimer = 8; // Respawn after 8 seconds
+                    this.dogSlowTimer = 4; // Dog slowed for 4 seconds
+                    this.dogSlowAmount = 0.4; // 40% speed
+                    this.displayMessage('🦴 Dog grabbed a bone! Slowed down!');
+                    if (window.audioManager) {
+                        window.audioManager.playSynthSound('bark');
+                    }
+                }
+            }
+        }
+        
         // Shooting - smarter and faster in later rounds
         this.enemy.shootCooldown -= dt;
         const shootDelay = Math.max(0.4, 1.0 - this.currentRound * 0.12);
         const aimTolerance = 0.35 - this.currentRound * 0.03; // More accurate in later rounds
         
-        if (this.enemy.shootCooldown <= 0 && Math.abs(angleDiff) < aimTolerance && distance < 450) {
+        // MERCY MECHANIC: If it's a deciding round (2-2), dog misses 50% of shots!
+        let mercyMiss = false;
+        if (this.playerWins === 2 && this.enemyWins === 2) {
+            mercyMiss = Math.random() < 0.5; // 50% chance to miss
+        }
+        
+        if (this.enemy.shootCooldown <= 0 && Math.abs(angleDiff) < aimTolerance && distance < 450 && !mercyMiss) {
             this.shootBullet(this.enemy, this.enemyBullets, false);
             this.enemy.shootCooldown = shootDelay + Math.random() * 0.3;
+        } else if (mercyMiss && this.enemy.shootCooldown <= 0 && Math.abs(angleDiff) < aimTolerance) {
+            // Dog hesitates instead of shooting
+            this.enemy.shootCooldown = shootDelay * 1.5; // Longer delay
         }
     }
     
@@ -1040,6 +1186,68 @@ class Level4 {
                 ctx.restore();
             }
         });
+        
+        // Draw bones (slow down the dog!)
+        this.bones.forEach(bone => {
+            if (!bone.collected) {
+                ctx.save();
+                ctx.translate(bone.x, bone.y);
+                
+                // Rotate animation
+                const bobble = Math.sin(Date.now() / 200) * 0.15;
+                ctx.rotate(bobble);
+                
+                // Bone shape
+                ctx.fillStyle = '#F5F5DC'; // Beige bone color
+                ctx.strokeStyle = '#D4C4A4';
+                ctx.lineWidth = 2;
+                
+                // Main shaft
+                ctx.fillRect(-15, -4, 30, 8);
+                ctx.strokeRect(-15, -4, 30, 8);
+                
+                // Left knob
+                ctx.beginPath();
+                ctx.arc(-15, -6, 5, 0, Math.PI * 2);
+                ctx.arc(-15, 6, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Right knob
+                ctx.beginPath();
+                ctx.arc(15, -6, 5, 0, Math.PI * 2);
+                ctx.arc(15, 6, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                
+                // Pulsing glow when available
+                ctx.shadowColor = '#FFD700';
+                ctx.shadowBlur = 10 + Math.sin(Date.now() / 100) * 5;
+                ctx.beginPath();
+                ctx.arc(0, 0, 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+                
+                // Icon
+                ctx.font = '14px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#000';
+                ctx.fillText('🦴', 0, -18);
+                
+                ctx.restore();
+            }
+        });
+        
+        // Draw slow effect indicator on dog if slowed
+        if (this.dogSlowTimer > 0) {
+            ctx.save();
+            ctx.translate(this.enemy.x + this.enemy.width/2, this.enemy.y - 15);
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#00BFFF';
+            ctx.fillText(`🦴 SLOWED ${this.dogSlowTimer.toFixed(1)}s`, 0, 0);
+            ctx.restore();
+        }
         
         // Draw bullets (flying sticks!)
         this.playerBullets.forEach(bullet => {

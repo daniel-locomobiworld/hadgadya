@@ -2,12 +2,26 @@
 // Pokemon-style battle with Jewish-themed moves
 
 class Level2 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Cat vs Goat";
         this.description = "You are the Cat! Chase the Goat and battle using the 10 Plagues of Egypt!";
         this.instructions = "Chase the goat, then battle using plague-powered moves!";
         this.icon = "🐱";
+        
+        // Difficulty settings
+        // Easy: slower goat, gets tired faster
+        // Normal: current behavior
+        // Hard: faster goat, less tired, more dodging
+        // Extreme: very fast goat, almost never tired, constant dodging
+        this.difficultySettings = {
+            easy: { goatSpeed: 130, tireInterval: 5, tireRecovery: 3, dodgeCooldown: 1.2 },
+            normal: { goatSpeed: 170, tireInterval: 10, tireRecovery: 1.5, dodgeCooldown: 0.6 },
+            hard: { goatSpeed: 200, tireInterval: 15, tireRecovery: 1.2, dodgeCooldown: 0.4 },
+            extreme: { goatSpeed: 230, tireInterval: 25, tireRecovery: 0.8, dodgeCooldown: 0.25 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Phase: 'chase' or 'battle'
         this.phase = 'chase';
@@ -15,11 +29,11 @@ class Level2 {
         // Player (Cat)
         this.player = new TopDownPlayer(100, 500, '🐱', 160);
         
-        // Goat (NPC to chase) - fast and tricky!
+        // Goat (NPC to chase) - speed based on difficulty
         this.goat = {
             x: 600,
             y: 150,
-            speed: 140,  // Almost as fast as player (160)
+            speed: this.settings.goatSpeed,
             emoji: '🐐',
             size: 32,
             fleeing: true,
@@ -28,11 +42,16 @@ class Level2 {
             staminaTimer: 0,  // Gets tired
             tired: false,
             dodgeTimer: 0,    // Sudden direction changes
-            panicMode: false  // Extra speed burst when cornered
+            panicMode: false, // Extra speed burst when cornered
+            inGrass: false    // Track if goat is hidden in grass
         };
         
         // Battle system
         this.battle = null;
+        
+        // Tall grass patches (Pokemon style - hides the goat!)
+        this.tallGrassPatches = [];
+        this.generateTallGrass();
         
         // Matzah powerups
         this.matzahPowerups = [
@@ -57,6 +76,59 @@ class Level2 {
         this.messageTimer = 0;
     }
     
+    generateTallGrass() {
+        // Create Pokemon-style tall grass patches - DENSER for chase phase!
+        const grassAreas = [
+            { x: 80, y: 100, width: 150, height: 100 },
+            { x: 500, y: 80, width: 160, height: 80 },
+            { x: 300, y: 220, width: 100, height: 100 },
+            { x: 620, y: 280, width: 120, height: 100 },
+            { x: 100, y: 280, width: 80, height: 80 },
+            { x: 420, y: 380, width: 140, height: 80 }
+        ];
+        
+        grassAreas.forEach(area => {
+            // Each area contains multiple grass tufts - DENSER now
+            const tuftsPerRow = Math.floor(area.width / 22);
+            const rows = Math.floor(area.height / 18);
+            
+            for (let row = 0; row < rows; row++) {
+                for (let col = 0; col < tuftsPerRow; col++) {
+                    this.tallGrassPatches.push({
+                        x: area.x + col * 22 + (Math.random() - 0.5) * 8,
+                        y: area.y + row * 18 + (Math.random() - 0.5) * 6,
+                        size: 16 + Math.random() * 8, // Slightly bigger: 16-24
+                        sway: Math.random() * Math.PI * 2,
+                        areaX: area.x,
+                        areaY: area.y,
+                        areaWidth: area.width,
+                        areaHeight: area.height
+                    });
+                }
+            }
+        });
+    }
+    
+    isInTallGrass(x, y) {
+        // Check if a position is inside any tall grass area
+        const grassAreas = [
+            { x: 80, y: 100, width: 150, height: 100 },
+            { x: 500, y: 80, width: 160, height: 80 },
+            { x: 300, y: 220, width: 100, height: 100 },
+            { x: 620, y: 280, width: 120, height: 100 },
+            { x: 100, y: 280, width: 80, height: 80 },
+            { x: 420, y: 380, width: 140, height: 80 }
+        ];
+        
+        for (const area of grassAreas) {
+            if (x >= area.x && x <= area.x + area.width &&
+                y >= area.y && y <= area.y + area.height) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
     update(dt) {
         if (this.complete) return;
         
@@ -68,6 +140,14 @@ class Level2 {
         } else if (this.phase === 'eating') {
             this.updateEating(dt);
         }
+        
+        // Update tall grass sway
+        this.tallGrassPatches.forEach(grass => {
+            grass.sway += dt * 2;
+        });
+        
+        // Check if goat is in tall grass
+        this.goat.inGrass = this.isInTallGrass(this.goat.x, this.goat.y);
         
         // Update message timer
         if (this.showMessage) {
@@ -167,10 +247,10 @@ class Level2 {
         
         // Stamina system - goat gets tired and slows down
         this.goat.staminaTimer += dt;
-        if (this.goat.staminaTimer > 8) {  // Every 8 seconds, goat gets tired
+        if (this.goat.staminaTimer > this.settings.tireInterval) {  // Difficulty-based tire interval
             this.goat.tired = true;
         }
-        if (this.goat.staminaTimer > 10) {  // Recovers after 2 seconds
+        if (this.goat.staminaTimer > this.settings.tireInterval + this.settings.tireRecovery) {  // Recovers after difficulty-based time
             this.goat.tired = false;
             this.goat.staminaTimer = 0;
         }
@@ -184,7 +264,7 @@ class Level2 {
             const dodgeDir = Math.random() > 0.5 ? 1 : -1;
             this.goat.fleeDirection.x = perpX * dodgeDir + (dx / distance) * 0.5;
             this.goat.fleeDirection.y = perpY * dodgeDir + (dy / distance) * 0.5;
-            this.goat.dodgeTimer = 0.8 + Math.random() * 0.5;
+            this.goat.dodgeTimer = this.settings.dodgeCooldown + Math.random() * 0.3;
             this.goat.panicMode = true;
             // Goat bleats when dodging
             if (window.audioManager && Math.random() < 0.3) {
@@ -229,6 +309,39 @@ class Level2 {
         // Keep in bounds
         newX = Math.max(30, Math.min(770, newX));
         newY = Math.max(80, Math.min(570, newY));
+        
+        // CORNER DETECTION - if near multiple walls, escape smarter!
+        const nearLeftWall = newX <= 50;
+        const nearRightWall = newX >= 750;
+        const nearTopWall = newY <= 100;
+        const nearBottomWall = newY >= 550;
+        const inCorner = (nearLeftWall || nearRightWall) && (nearTopWall || nearBottomWall);
+        
+        if (inCorner) {
+            // Escape toward center with some randomness!
+            const centerX = 400;
+            const centerY = 300;
+            const toCenter = {
+                x: centerX - this.goat.x,
+                y: centerY - this.goat.y
+            };
+            const dist = Math.sqrt(toCenter.x * toCenter.x + toCenter.y * toCenter.y);
+            
+            // Flee toward center with random perpendicular offset
+            const perpX = -toCenter.y / dist;
+            const perpY = toCenter.x / dist;
+            const offset = (Math.random() - 0.5) * 0.6;
+            
+            this.goat.fleeDirection.x = (toCenter.x / dist) + perpX * offset;
+            this.goat.fleeDirection.y = (toCenter.y / dist) + perpY * offset;
+            this.goat.fleeTimer = 0.5; // Keep this direction for a bit
+            
+            // Speed boost to escape corner!
+            newX = this.goat.x + this.goat.fleeDirection.x * currentSpeed * 1.5 * dt;
+            newY = this.goat.y + this.goat.fleeDirection.y * currentSpeed * 1.5 * dt;
+            newX = Math.max(30, Math.min(770, newX));
+            newY = Math.max(80, Math.min(570, newY));
+        }
         
         // Check obstacle collision
         const goatRect = {
@@ -407,37 +520,67 @@ class Level2 {
         // Draw matzah powerups
         this.matzahPowerups.forEach(matzah => matzah.render(ctx));
         
+        // Draw tall grass patches (behind goat and player)
+        this.renderTallGrass(ctx, 'behind');
+        
         if (this.phase === 'chase') {
-            // Draw goat with shadow
-            ctx.fillStyle = 'rgba(0,0,0,0.3)';
-            ctx.beginPath();
-            ctx.ellipse(this.goat.x, this.goat.y + 15, 20, 8, 0, 0, Math.PI * 2);
-            ctx.fill();
-            
-            // Goat with glow when tired
-            if (this.goat.tired) {
-                ctx.shadowColor = '#ff6b6b';
-                ctx.shadowBlur = 15;
-            }
-            ctx.font = `${this.goat.size}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.goat.emoji, this.goat.x, this.goat.y);
-            ctx.shadowBlur = 0;
-            
-            // Tired indicator
-            if (this.goat.tired) {
-                ctx.font = '16px Arial';
-                ctx.fillText('😓', this.goat.x + 20, this.goat.y - 20);
-            }
-            
-            // Draw exclamation if close
-            const dx = this.player.x - this.goat.x;
-            const dy = this.player.y - this.goat.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance < 150) {
-                ctx.font = '24px Arial';
-                ctx.fillText('❗', this.goat.x, this.goat.y - 35);
+            // Only draw goat if NOT hidden in grass
+            if (!this.goat.inGrass) {
+                // Draw goat with shadow
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.beginPath();
+                ctx.ellipse(this.goat.x, this.goat.y + 15, 20, 8, 0, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Goat - ALWAYS FULLY VISIBLE with glow!
+                ctx.save();
+                ctx.globalAlpha = 1; // NEVER transparent!
+                
+                // Pulsing glow effect for visibility
+                const pulse = Math.sin(this.engine.totalTime * 3) * 5;
+                const bobY = Math.sin(this.engine.totalTime * 4) * 2;
+                
+                // Main glow - white/cream for goat
+                ctx.shadowColor = this.goat.tired ? '#ff6b6b' : '#ffffff';
+                ctx.shadowBlur = this.goat.tired ? 25 : 20 + pulse;
+                
+                ctx.font = '40px Arial'; // Bigger goat!
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.goat.emoji, this.goat.x, this.goat.y + bobY);
+                
+                // Second glow layer for extra visibility
+                ctx.shadowColor = '#ffd700';
+                ctx.shadowBlur = 12;
+                ctx.fillText(this.goat.emoji, this.goat.x, this.goat.y + bobY);
+                
+                ctx.shadowBlur = 0;
+                ctx.restore();
+                
+                // Tired indicator
+                if (this.goat.tired) {
+                    ctx.font = '20px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('😓', this.goat.x + 25, this.goat.y - 25);
+                    ctx.fillText('💤', this.goat.x - 25, this.goat.y - 20);
+                }
+                
+                // Draw exclamation if close
+                const dx = this.player.x - this.goat.x;
+                const dy = this.player.y - this.goat.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance < 150) {
+                    ctx.font = '28px Arial';
+                    ctx.fillText('❗', this.goat.x, this.goat.y - 40);
+                }
+            } else {
+                // Goat is hidden in grass - show rustling indicator sometimes
+                if (Math.sin(this.engine.totalTime * 5) > 0.7) {
+                    ctx.font = '16px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+                    ctx.fillText('🌿', this.goat.x, this.goat.y - 20);
+                }
             }
         } else if (this.phase === 'battle' && this.battle) {
             // Canvas-based battle system with animations!
@@ -543,12 +686,17 @@ class Level2 {
             this.player.render(ctx);
         }
         
+        // Draw tall grass in front ONLY during chase phase (not during battle)
+        if (this.phase === 'chase') {
+            this.renderTallGrass(ctx, 'front');
+        }
+        
         // Draw hint
         if (this.phase === 'chase') {
             ctx.font = '14px Arial';
             ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
             ctx.textAlign = 'center';
-            ctx.fillText('🐱 Chase and catch the goat! The goat gets tired sometimes... 😓', 400, 580);
+            ctx.fillText('🐱 Chase the goat! It hides in the tall grass! 🌿', 400, 580);
         }
         
         // Draw message
@@ -565,6 +713,52 @@ class Level2 {
         }
     }
     
+    renderTallGrass(ctx, layer) {
+        // Draw Pokemon-style tall grass patches
+        ctx.save();
+        
+        this.tallGrassPatches.forEach((grass, index) => {
+            const sway = Math.sin(grass.sway + index * 0.1) * 3;
+            
+            if (layer === 'behind') {
+                // Draw the base/roots of grass (darker, behind characters)
+                ctx.fillStyle = '#1a5a1a';
+                ctx.beginPath();
+                ctx.moveTo(grass.x - 5, grass.y + 6);
+                ctx.lineTo(grass.x + sway - 1, grass.y - 4);
+                ctx.lineTo(grass.x + 2, grass.y + 6);
+                ctx.fill();
+            } else {
+                // Draw the tall grass blades (in front, covering characters)
+                // Main blade
+                ctx.fillStyle = '#2a8a2a';
+                ctx.beginPath();
+                ctx.moveTo(grass.x - 4, grass.y + 8);
+                ctx.lineTo(grass.x + sway, grass.y - grass.size);
+                ctx.lineTo(grass.x + 3, grass.y + 8);
+                ctx.fill();
+                
+                // Second blade
+                ctx.fillStyle = '#3aaa3a';
+                ctx.beginPath();
+                ctx.moveTo(grass.x + 2, grass.y + 6);
+                ctx.lineTo(grass.x + sway * 0.8 + 6, grass.y - grass.size * 0.75);
+                ctx.lineTo(grass.x + 6, grass.y + 6);
+                ctx.fill();
+                
+                // Third blade (shorter)
+                ctx.fillStyle = '#4aba4a';
+                ctx.beginPath();
+                ctx.moveTo(grass.x - 7, grass.y + 5);
+                ctx.lineTo(grass.x + sway * 0.6 - 4, grass.y - grass.size * 0.55);
+                ctx.lineTo(grass.x - 3, grass.y + 5);
+                ctx.fill();
+            }
+        });
+        
+        ctx.restore();
+    }
+    
     reset() {
         this.phase = 'chase';
         this.player = new TopDownPlayer(100, 500, '🐱', 160);
@@ -576,7 +770,8 @@ class Level2 {
             size: 32,
             fleeing: true,
             fleeTimer: 0,
-            fleeDirection: { x: 0, y: 0 }
+            fleeDirection: { x: 0, y: 0 },
+            inGrass: false
         };
         this.battle = null;
         this.matzahPowerups = [

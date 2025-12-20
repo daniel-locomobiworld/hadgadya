@@ -2,12 +2,26 @@
 // Top-Down Shoot 'Em Up (Shmup) - Dog fires teeth at cat spaceships
 
 class Level3 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Dog vs Cat Ships";
         this.description = "The Dog must defeat the Cat! Shoot teeth at the cat's spaceships before they destroy you!";
         this.instructions = "Arrow keys to move, SPACE to shoot teeth!";
         this.icon = "🐕";
+        
+        // Difficulty settings
+        // Easy: slower cats, fewer spawns, weaker
+        // Normal: current behavior
+        // Hard: faster cats, more spawns, stronger
+        // Extreme: very fast cats, many spawns, much stronger
+        this.difficultySettings = {
+            easy: { catSpeed: 60, catHP: 35, spawnDelay: 2.0, maxCats: 3, bulletSpeed: 150 },
+            normal: { catSpeed: 80, catHP: 50, spawnDelay: 1.5, maxCats: 5, bulletSpeed: 200 },
+            hard: { catSpeed: 110, catHP: 65, spawnDelay: 1.0, maxCats: 6, bulletSpeed: 260 },
+            extreme: { catSpeed: 140, catHP: 80, spawnDelay: 0.7, maxCats: 8, bulletSpeed: 320 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Player (Dog) at bottom
         this.player = {
@@ -32,7 +46,7 @@ class Level3 {
         this.catShips = [];
         this.catBullets = [];
         this.spawnTimer = 0;
-        this.spawnDelay = 1.5;
+        this.spawnDelay = this.settings.spawnDelay;
         
         // Boss cat (final enemy)
         this.boss = null;
@@ -93,7 +107,7 @@ class Level3 {
         // Spawn new enemies
         if (!this.bossSpawned && this.catsDefeated < this.catsNeeded) {
             this.spawnTimer -= dt;
-            if (this.spawnTimer <= 0 && this.catShips.length < 5) {
+            if (this.spawnTimer <= 0 && this.catShips.length < this.settings.maxCats) {
                 this.spawnCatShip();
                 this.spawnTimer = this.spawnDelay;
             }
@@ -111,6 +125,10 @@ class Level3 {
             if (matzah.checkCollision(this.player.x + this.player.width/2, this.player.y + this.player.height/2, 30)) {
                 this.engine.addAwakeness(matzah.awakenessBoost);
                 this.displayMessage('🫓 Matzah! +15 Awakeness!');
+                // Collect powerup sound!
+                if (window.audioManager) {
+                    window.audioManager.playSynthSound('slurp');
+                }
                 return false;
             }
             return matzah.y < 600;
@@ -144,12 +162,15 @@ class Level3 {
     }
     
     shootTooth() {
+        // Shoot a chomping mouth that looks like it's biting!
         this.teeth.push({
             x: this.player.x + this.player.width/2,
             y: this.player.y,
-            width: 15,
-            height: 20,
-            speed: 400
+            width: 25,
+            height: 25,
+            speed: 400,
+            chompTimer: 0,  // Animation timer
+            chompOpen: true // Toggle open/closed mouth
         });
         
         // Bark sound!
@@ -161,6 +182,13 @@ class Level3 {
     updateTeeth(dt) {
         this.teeth = this.teeth.filter(tooth => {
             tooth.y -= tooth.speed * dt;
+            
+            // Animate the chomping!
+            tooth.chompTimer += dt;
+            if (tooth.chompTimer > 0.08) { // Fast chomping
+                tooth.chompTimer = 0;
+                tooth.chompOpen = !tooth.chompOpen;
+            }
             
             // Check collision with cat ships
             for (let i = this.catShips.length - 1; i >= 0; i--) {
@@ -174,9 +202,19 @@ class Level3 {
                     if (cat.hp <= 0) {
                         this.catShips.splice(i, 1);
                         this.catsDefeated++;
+                        
+                        // Cat destroyed explosion sound!
+                        if (window.audioManager) {
+                            window.audioManager.playSynthSound('explosion');
+                        }
+                        
                         // Maybe spawn matzah
                         if (Math.random() < 0.3) {
                             this.matzahPowerups.push(new MatzahPowerup(cat.x + cat.width/2, cat.y));
+                            // Powerup spawn sound
+                            if (window.audioManager) {
+                                window.audioManager.playSynthSound('powerup');
+                            }
                         }
                     }
                     return false;
@@ -188,6 +226,16 @@ class Level3 {
                 if (this.engine.rectCollision(tooth, this.boss)) {
                     this.boss.hp -= 10;
                     this.engine.screenShake();
+                    
+                    // Boss damage sound!
+                    if (window.audioManager) {
+                        window.audioManager.playSynthSound('hit');
+                        // Extra meow when hurt
+                        if (Math.random() < 0.4) {
+                            window.audioManager.playSynthSound('meow');
+                        }
+                    }
+                    
                     if (this.boss.hp <= 0) {
                         // Start the biting phase - dog runs up to bite the cat!
                         this.startBitingPhase();
@@ -206,11 +254,16 @@ class Level3 {
             y: -50,
             width: 40,
             height: 40,
-            hp: 50,
-            speed: 80 + Math.random() * 40,
+            hp: this.settings.catHP,
+            speed: this.settings.catSpeed + Math.random() * 20,
             shootTimer: Math.random() * 2,
             moveDir: Math.random() > 0.5 ? 1 : -1
         });
+        
+        // Hiss sound when cat appears!
+        if (window.audioManager && Math.random() < 0.5) {
+            window.audioManager.playSynthSound('meow');
+        }
     }
     
     updateCatShips(dt) {
@@ -232,9 +285,14 @@ class Level3 {
                     y: cat.y + cat.height,
                     width: 10,
                     height: 15,
-                    speed: 200
+                    speed: this.settings.bulletSpeed
                 });
                 cat.shootTimer = 1 + Math.random() * 2;
+                
+                // Cat attack sound
+                if (window.audioManager && Math.random() < 0.3) {
+                    window.audioManager.playSynthSound('throw');
+                }
             }
         });
         
@@ -272,6 +330,14 @@ class Level3 {
         this.bossSpawned = true;
         this.displayMessage('🚨 BOSS CAT APPROACHING! 🚨');
         
+        // Dramatic boss entrance sounds!
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('explosion');
+            setTimeout(() => {
+                if (window.audioManager) window.audioManager.playSynthSound('meow');
+            }, 300);
+        }
+        
         this.boss = {
             x: 350,
             y: -100,
@@ -282,7 +348,12 @@ class Level3 {
             phase: 'enter',
             shootTimer: 0,
             moveDir: 1,
-            speed: 120
+            moveDirY: 0,
+            speed: 120,
+            directionChangeTimer: 0,
+            directionChangeCooldown: 1.5 + Math.random() * 1.5,
+            targetY: 80,
+            bobTimer: 0
         };
     }
     
@@ -296,11 +367,44 @@ class Level3 {
             return;
         }
         
-        // Move side to side
+        // Direction change timer - boss changes direction more frequently
+        this.boss.directionChangeTimer -= dt;
+        if (this.boss.directionChangeTimer <= 0) {
+            // Randomly decide new movement pattern
+            const pattern = Math.random();
+            if (pattern < 0.3) {
+                // Reverse X direction
+                this.boss.moveDir = -this.boss.moveDir;
+            } else if (pattern < 0.5) {
+                // Move toward player on Y axis
+                if (this.player.x < this.boss.x) {
+                    this.boss.moveDir = -1;
+                } else {
+                    this.boss.moveDir = 1;
+                }
+            } else if (pattern < 0.7) {
+                // Change Y target - bob up or down
+                this.boss.targetY = 60 + Math.random() * 80;
+            }
+            
+            this.boss.directionChangeCooldown = 0.8 + Math.random() * 1.2;
+            this.boss.directionChangeTimer = this.boss.directionChangeCooldown;
+        }
+        
+        // Move side to side with boundaries
         this.boss.x += this.boss.moveDir * this.boss.speed * dt;
         if (this.boss.x <= 50 || this.boss.x >= 650) {
             this.boss.moveDir = -this.boss.moveDir;
         }
+        
+        // Move toward target Y position (bobbing motion)
+        const yDiff = this.boss.targetY - this.boss.y;
+        if (Math.abs(yDiff) > 2) {
+            this.boss.y += Math.sign(yDiff) * this.boss.speed * 0.5 * dt;
+        }
+        
+        // Clamp Y position
+        this.boss.y = Math.max(50, Math.min(150, this.boss.y));
         
         // Shoot pattern
         this.boss.shootTimer -= dt;
@@ -319,6 +423,11 @@ class Level3 {
                 });
             }
             this.boss.shootTimer = 0.8;
+            
+            // Boss attack sound!
+            if (window.audioManager) {
+                window.audioManager.playSynthSound('throw');
+            }
         }
         
         // Update boss bullets with custom velocity
@@ -462,16 +571,47 @@ class Level3 {
             ctx.fillText('BOSS CAT', 400, 35);
         }
         
-        // Draw cat bullets
+        // Draw cat bullets - looks like biting mouths!
         ctx.font = '15px Arial';
         this.catBullets.forEach(bullet => {
-            ctx.fillText('💥', bullet.x, bullet.y);
+            ctx.fillText('😾', bullet.x, bullet.y);
         });
         
-        // Draw teeth
-        ctx.font = '20px Arial';
+        // Draw chomping mouths (dog's projectiles) - animated biting!
         this.teeth.forEach(tooth => {
-            ctx.fillText('🦷', tooth.x, tooth.y);
+            ctx.save();
+            ctx.translate(tooth.x, tooth.y);
+            
+            // Draw chomping mouth animation
+            ctx.font = '28px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            if (tooth.chompOpen) {
+                // Open mouth - ready to bite!
+                ctx.fillText('👅', 0, 0); // Tongue/open mouth
+                // Add teeth around it
+                ctx.font = '12px Arial';
+                ctx.fillText('🦷', -8, -8);
+                ctx.fillText('🦷', 8, -8);
+            } else {
+                // Closed mouth - CHOMP!
+                ctx.fillText('😬', 0, 0); // Grimacing/biting face
+            }
+            
+            // Add motion lines for speed effect
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(-10, 15);
+            ctx.lineTo(-10, 25);
+            ctx.moveTo(0, 18);
+            ctx.lineTo(0, 30);
+            ctx.moveTo(10, 15);
+            ctx.lineTo(10, 25);
+            ctx.stroke();
+            
+            ctx.restore();
         });
         
         // Draw matzah powerups

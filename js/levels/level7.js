@@ -2,18 +2,28 @@
 // Drink 75% of the water! Dodge kids running around!
 
 class Level7 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Drink the Water";
         this.description = "You are the Ox! Drink 75% of the water while dodging the hyperactive kids!";
         this.instructions = "Arrow keys/WASD to move. Collect 💧 water drops. Avoid the kids!";
         this.icon = "🐂";
         
-        // Player (Ox)
+        // Difficulty settings - harder overall
+        this.difficultySettings = {
+            easy: { kidSpeed: 120, puddleSpawnInterval: 12, kidSpawnInterval: 50, initialKids: 4 },
+            normal: { kidSpeed: 160, puddleSpawnInterval: 8, kidSpawnInterval: 25, initialKids: 5 },
+            hard: { kidSpeed: 190, puddleSpawnInterval: 6, kidSpawnInterval: 18, initialKids: 6 },
+            extreme: { kidSpeed: 220, puddleSpawnInterval: 4, kidSpawnInterval: 12, initialKids: 7 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
+        
+        // Player (Ox) - bigger and more visible
         this.player = {
             x: 400,
             y: 300,
-            size: 45,
+            size: 60,  // Bigger like other level icons!
             speed: 170,
             emoji: '🐂',
             invincible: false,
@@ -50,8 +60,8 @@ class Level7 {
         this.matzahSpawnTimer = 10;
         
         // Difficulty timers - spawn new puddles and kids over time
-        this.puddleSpawnTimer = 8;  // First new puddle after 8 seconds
-        this.kidSpawnTimer = 30;     // First extra kid after 30 seconds
+        this.puddleSpawnTimer = this.settings.puddleSpawnInterval;
+        this.kidSpawnTimer = this.settings.kidSpawnInterval;
         this.levelTime = 0;          // Track total time in level
         
         // Visual effects
@@ -76,18 +86,18 @@ class Level7 {
     }
     
     initKids() {
-        const kidEmojis = ['👦', '👧', '🧒', '👶'];
-        const kidNames = ['Shmuel', 'Rivka', 'Moshe', 'Baby Eli'];
+        const kidEmojis = ['👦', '👧', '🧒', '👶', '👦', '👧'];
+        const kidNames = ['Shmuel', 'Rivka', 'Moshe', 'Baby Eli', 'David', 'Sarah'];
         
-        for (let i = 0; i < 4; i++) {
+        for (let i = 0; i < this.settings.initialKids; i++) {
             this.kids.push({
                 x: 100 + Math.random() * 600,
                 y: 100 + Math.random() * 400,
-                vx: (Math.random() - 0.5) * 180,
-                vy: (Math.random() - 0.5) * 180,
+                vx: (Math.random() - 0.5) * this.settings.kidSpeed * 1.3,
+                vy: (Math.random() - 0.5) * this.settings.kidSpeed * 1.3,
                 size: 32,
-                emoji: kidEmojis[i],
-                name: kidNames[i],
+                emoji: kidEmojis[i % kidEmojis.length],
+                name: kidNames[i % kidNames.length],
                 bounceTimer: 0,
                 hyperTimer: Math.random() * 4,
                 isHyper: false
@@ -276,11 +286,11 @@ class Level7 {
             this.puddleSpawnTimer = 10 + Math.random() * 5;  // Next puddle in 10-15 seconds
         }
         
-        // Spawn extra kids every 30 seconds
+        // Spawn extra kids based on difficulty
         this.kidSpawnTimer -= dt;
         if (this.kidSpawnTimer <= 0) {
             this.spawnExtraKid();
-            this.kidSpawnTimer = 30;  // Next kid in 30 seconds
+            this.kidSpawnTimer = this.settings.kidSpawnInterval;  // Next kid based on difficulty
         }
         
         this.matzahPowerups = this.matzahPowerups.filter(matzah => {
@@ -410,13 +420,13 @@ class Level7 {
                 const dist = Math.sqrt(pdx * pdx + pdy * pdy);
                 
                 if (dist < 38) {
-                    // Lose water!
-                    this.waterMeter = Math.max(0, this.waterMeter - 8);
+                    // Lose more water!
+                    this.waterMeter = Math.max(0, this.waterMeter - 12);
                     this.screenFlash = 1;
                     this.player.invincible = true;
-                    this.player.invincibleTimer = 1.2;
+                    this.player.invincibleTimer = 1.0;  // Shorter invincibility
                     
-                    this.displayMessage(`🧒 ${kid.name} spilled your water! -8%`);
+                    this.displayMessage(`🧒 ${kid.name} spilled your water! -12%`);
                     this.engine.screenShake();
                     
                     // Play kid phrase sound effect!
@@ -686,7 +696,7 @@ class Level7 {
         ctx.shadowBlur = 0;
         this.matzahPowerups.forEach(m => m.render(ctx));
         
-        // Draw player
+        // Draw player (Ox) - bigger with glow like water drop!
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.globalAlpha = 1;
         ctx.shadowBlur = 0;
@@ -697,13 +707,24 @@ class Level7 {
         } else {
             ctx.globalAlpha = 1;
         }
+        
+        // Pulsing glow effect like the water drop
+        const pulse = Math.sin(this.engine.totalTime * 3) * 5;
+        const bobY = Math.sin(this.engine.totalTime * 2) * 3;
+        
         ctx.fillStyle = '#ffffff';
-        ctx.shadowColor = '#ffd700';
-        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#8B4513';  // Brown glow for ox
+        ctx.shadowBlur = 25 + pulse;
         ctx.font = `${this.player.size}px Arial`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(this.player.emoji, this.player.x, this.player.y);
+        ctx.fillText(this.player.emoji, this.player.x, this.player.y + bobY);
+        
+        // Second layer glow
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 15;
+        ctx.fillText(this.player.emoji, this.player.x, this.player.y + bobY);
+        
         ctx.shadowBlur = 0;
         ctx.restore();
         

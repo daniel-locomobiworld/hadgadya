@@ -2,12 +2,26 @@
 // Find coins hidden in vases/grass, then buy goat from vending machine
 
 class Level1 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Buy the Goat";
         this.description = "The Father must find two golden zuzim hidden in vases and buy a goat from the vending machine!";
         this.instructions = "Arrow keys/WASD to move. Press SPACE near vases to search. Find 2 coins, then go to the vending machine!";
         this.icon = "🐐";
+        
+        // Difficulty settings
+        // Easy: no new jars spawn
+        // Normal: 1 new jar for every 2 broken (current behavior)
+        // Hard: 1 new jar per broken, start with 3 more jars
+        // Extreme: 2 new jars per broken, start with 5 more jars
+        this.difficultySettings = {
+            easy: { respawnRatio: 0, extraStartJars: 0 },
+            normal: { respawnRatio: 0.5, extraStartJars: 0 },
+            hard: { respawnRatio: 1, extraStartJars: 3 },
+            extreme: { respawnRatio: 2, extraStartJars: 5 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Player (Father)
         this.player = new TopDownPlayer(400, 500, '👨', 180);
@@ -98,6 +112,11 @@ class Level1 {
                 wobble: 0
             });
         });
+        
+        // Add extra starting jars based on difficulty
+        for (let i = 0; i < this.settings.extraStartJars; i++) {
+            this.respawnVase();
+        }
     }
     
     // Respawn a new vase at a random position (new pots never have coins!)
@@ -244,10 +263,16 @@ class Level1 {
                     // Show the funny item from this vase
                     this.displayMessage(`${vase.funnyItem.emoji} ${vase.funnyItem.text}`);
                     
-                    // Track broken pots - spawn 1 new pot for every 2 broken
+                    // Track broken pots - spawn new pots based on difficulty
                     this.brokenPotsCount++;
-                    if (this.brokenPotsCount % 2 === 0) {
-                        this.respawnVase();
+                    const ratio = this.settings.respawnRatio;
+                    if (ratio > 0) {
+                        // Calculate how many to spawn based on ratio
+                        // ratio 0.5 = 1 per 2 broken, ratio 1 = 1 per broken, ratio 2 = 2 per broken
+                        const spawnsNeeded = Math.floor(this.brokenPotsCount * ratio) - Math.floor((this.brokenPotsCount - 1) * ratio);
+                        for (let i = 0; i < spawnsNeeded; i++) {
+                            this.respawnVase();
+                        }
                     }
                 }
                 break;

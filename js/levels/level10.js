@@ -2,12 +2,22 @@
 // 1v1 Fighting Game - Final Boss Battle!
 
 class Level10 {
-    constructor(engine) {
+    constructor(engine, difficulty = 'normal') {
         this.engine = engine;
+        this.difficulty = difficulty;
         this.name = "Final Battle";
         this.description = "You are The Holy One! Defeat the Angel of Death in an epic 1v1 fighting battle! Reduce their HP to 0 to win!";
         this.instructions = "← → Move | ↑ Jump | Z Punch | X Special Attack | C Block. Build combos for bonus damage!";
         this.icon = "✡️";
+        
+        // Difficulty settings
+        this.difficultySettings = {
+            easy: { enemyHP: 100, enemySpeed: 120, aiCooldown: 0.8 },
+            normal: { enemyHP: 150, enemySpeed: 150, aiCooldown: 0.5 },
+            hard: { enemyHP: 200, enemySpeed: 180, aiCooldown: 0.35 },
+            extreme: { enemyHP: 250, enemySpeed: 220, aiCooldown: 0.25 }
+        };
+        this.settings = this.difficultySettings[difficulty] || this.difficultySettings.normal;
         
         // Ground level
         this.groundY = 500;
@@ -42,12 +52,12 @@ class Level10 {
             height: 80,
             vx: 0,
             vy: 0,
-            speed: 150,
+            speed: this.settings.enemySpeed,
             grounded: true,
             facing: -1,
             emoji: '💀',
-            hp: 150,
-            maxHp: 150,
+            hp: this.settings.enemyHP,
+            maxHp: this.settings.enemyHP,
             state: 'idle',
             stateTimer: 0,
             aiTimer: 0,
@@ -71,11 +81,56 @@ class Level10 {
         this.messageText = '';
         this.messageTimer = 0;
         
-        this.displayMessage('⚔️ FINAL BATTLE! ⚔️');
+        // DRAMATIC INTRO SEQUENCE!
+        this.introPhase = 0;        // 0=fade in, 1=VS, 2=fighters, 3=FIGHT!, 4=playing
+        this.introTimer = 0;
+        this.introFlash = 0;
+        this.introCameraShake = 0;
+        
+        // Don't show regular message during intro
+        // this.displayMessage('⚔️ FINAL BATTLE! ⚔️');
     }
     
     update(dt) {
         if (this.complete) return;
+        
+        // ===== DRAMATIC INTRO SEQUENCE! =====
+        if (this.introPhase < 4) {
+            this.introTimer += dt;
+            this.introCameraShake = Math.max(0, this.introCameraShake - dt * 5);
+            
+            // Phase transitions
+            if (this.introPhase === 0 && this.introTimer > 1.0) {
+                // Phase 1: Show "FINAL MATCH"
+                this.introPhase = 1;
+                this.introTimer = 0;
+                this.introFlash = 1;
+                if (window.audioManager) window.audioManager.playSynthSound('explosion');
+            } else if (this.introPhase === 1 && this.introTimer > 1.5) {
+                // Phase 2: Show fighters
+                this.introPhase = 2;
+                this.introTimer = 0;
+                this.introCameraShake = 1;
+                if (window.audioManager) window.audioManager.playSynthSound('hit');
+            } else if (this.introPhase === 2 && this.introTimer > 2.0) {
+                // Phase 3: FIGHT!
+                this.introPhase = 3;
+                this.introTimer = 0;
+                this.introFlash = 1;
+                this.introCameraShake = 1;
+                if (window.audioManager) {
+                    window.audioManager.playSynthSound('explosion');
+                    window.audioManager.playSynthSound('powerup');
+                }
+            } else if (this.introPhase === 3 && this.introTimer > 1.5) {
+                // Phase 4: Start playing!
+                this.introPhase = 4;
+            }
+            
+            // Decay flash
+            this.introFlash = Math.max(0, this.introFlash - dt * 3);
+            return; // Don't update gameplay during intro
+        }
         
         // Update player
         this.updatePlayer(dt);
@@ -86,6 +141,9 @@ class Level10 {
         // Physics for both
         this.applyPhysics(this.player, dt);
         this.applyPhysics(this.enemy, dt);
+        
+        // Check for head stomp attacks
+        this.checkStompAttacks(dt);
         
         // Update attacks
         this.updateAttacks(dt);
@@ -304,7 +362,7 @@ class Level10 {
                 this.enemy.aiAction = 'approach';
             }
             
-            this.enemy.aiTimer = 0.5 + Math.random() * 0.5;
+            this.enemy.aiTimer = this.settings.aiCooldown + Math.random() * this.settings.aiCooldown;
         }
         
         // Execute action
@@ -366,6 +424,93 @@ class Level10 {
         
         // Wall boundaries
         entity.x = Math.max(50, Math.min(750, entity.x));
+    }
+    
+    checkStompAttacks(dt) {
+        const stompDamage = 15;
+        const headHeight = 30; // Height of head hitbox
+        const bounceVelocity = -300; // Bounce up after stomping
+        
+        // Check if player is stomping enemy
+        if (this.player.vy > 0 && !this.player.grounded) {
+            const playerBottom = this.player.y;
+            const enemyTop = this.enemy.y - this.enemy.height;
+            const horizontalOverlap = Math.abs(this.player.x - this.enemy.x) < (this.player.width/2 + this.enemy.width/2);
+            
+            if (horizontalOverlap && playerBottom >= enemyTop && playerBottom <= enemyTop + headHeight + this.player.vy * dt) {
+                // Player stomped on enemy's head!
+                this.enemy.hp -= stompDamage;
+                this.enemy.state = 'hurt';
+                this.enemy.stateTimer = 0.4;
+                this.player.vy = bounceVelocity; // Bounce up
+                this.player.grounded = false;
+                this.engine.screenShake();
+                
+                if (window.audioManager) {
+                    window.audioManager.playSynthSound('hit');
+                }
+                
+                this.effects.push({
+                    x: this.enemy.x,
+                    y: this.enemy.y - this.enemy.height,
+                    vx: 0,
+                    vy: -50,
+                    emoji: '👟💥',
+                    life: 0.4
+                });
+                
+                this.displayMessage('🦶 STOMP!');
+            }
+        }
+        
+        // Check if enemy is stomping player
+        if (this.enemy.vy > 0 && !this.enemy.grounded) {
+            const enemyBottom = this.enemy.y;
+            const playerTop = this.player.y - this.player.height;
+            const horizontalOverlap = Math.abs(this.player.x - this.enemy.x) < (this.player.width/2 + this.enemy.width/2);
+            
+            if (horizontalOverlap && enemyBottom >= playerTop && enemyBottom <= playerTop + headHeight + this.enemy.vy * dt) {
+                // Enemy stomped on player's head!
+                if (this.player.state !== 'blocking') {
+                    this.player.hp -= stompDamage;
+                    this.player.state = 'hurt';
+                    this.player.stateTimer = 0.4;
+                    this.enemy.vy = bounceVelocity; // Bounce up
+                    this.enemy.grounded = false;
+                    this.engine.screenShake();
+                    
+                    if (window.audioManager) {
+                        window.audioManager.playSynthSound('hit');
+                    }
+                    
+                    this.effects.push({
+                        x: this.player.x,
+                        y: this.player.y - this.player.height,
+                        vx: 0,
+                        vy: -50,
+                        emoji: '💀👟',
+                        life: 0.4
+                    });
+                } else {
+                    // Blocked the stomp!
+                    this.enemy.vy = bounceVelocity * 1.5; // Bounce away higher
+                    this.enemy.grounded = false;
+                    
+                    this.effects.push({
+                        x: this.player.x,
+                        y: this.player.y - this.player.height,
+                        vx: 0,
+                        vy: 0,
+                        emoji: '🛡️',
+                        life: 0.3
+                    });
+                    
+                    if (window.audioManager) {
+                        window.audioManager.playSynthSound('vaseBreak');
+                    }
+                }
+            }
+        }
     }
     
     updateAttacks(dt) {
@@ -468,6 +613,16 @@ class Level10 {
     }
     
     render(ctx) {
+        // Camera shake during intro
+        if (this.introCameraShake > 0) {
+            ctx.save();
+            const shake = this.introCameraShake * 10;
+            ctx.translate(
+                (Math.random() - 0.5) * shake,
+                (Math.random() - 0.5) * shake
+            );
+        }
+        
         // Epic background
         const gradient = ctx.createLinearGradient(0, 0, 0, 600);
         gradient.addColorStop(0, '#1a0a2e');
@@ -475,6 +630,146 @@ class Level10 {
         gradient.addColorStop(1, '#0a0a1a');
         ctx.fillStyle = gradient;
         ctx.fillRect(0, 0, 800, 600);
+        
+        // ===== DRAMATIC INTRO SEQUENCE RENDERING =====
+        if (this.introPhase < 4) {
+            // Darker overlay
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, 800, 600);
+            
+            // Lightning bolts in background
+            if (Math.random() < 0.1) {
+                ctx.strokeStyle = 'rgba(255, 255, 100, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                let x = Math.random() * 800;
+                ctx.moveTo(x, 0);
+                for (let y = 0; y < 600; y += 30) {
+                    x += (Math.random() - 0.5) * 50;
+                    ctx.lineTo(x, y);
+                }
+                ctx.stroke();
+            }
+            
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Phase 0: Fade in - show title
+            if (this.introPhase >= 0) {
+                const alpha = this.introPhase === 0 ? Math.min(1, this.introTimer) : 1;
+                
+                // "FINAL MATCH" text with epic styling
+                ctx.save();
+                const scale = this.introPhase === 1 ? 1 + Math.sin(this.introTimer * 10) * 0.05 : 1;
+                ctx.translate(400, 150);
+                ctx.scale(scale, scale);
+                
+                // Glow layers
+                ctx.globalAlpha = alpha * 0.5;
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 50;
+                ctx.font = 'bold 80px Impact, Arial';
+                ctx.fillStyle = '#ff0000';
+                ctx.fillText('FINAL MATCH', 0, 0);
+                
+                // Main text
+                ctx.globalAlpha = alpha;
+                ctx.shadowBlur = 20;
+                ctx.strokeStyle = '#000000';
+                ctx.lineWidth = 6;
+                ctx.strokeText('FINAL MATCH', 0, 0);
+                ctx.fillStyle = '#ffd700';
+                ctx.fillText('FINAL MATCH', 0, 0);
+                
+                ctx.restore();
+            }
+            
+            // Phase 1+: Show VS
+            if (this.introPhase >= 1) {
+                const vsAlpha = this.introPhase === 1 ? Math.min(1, this.introTimer * 2) : 1;
+                ctx.globalAlpha = vsAlpha;
+                
+                // VS text
+                ctx.shadowColor = '#ffffff';
+                ctx.shadowBlur = 30;
+                ctx.font = 'bold 100px Impact, Arial';
+                ctx.fillStyle = '#ff4444';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 5;
+                ctx.strokeText('VS', 400, 320);
+                ctx.fillText('VS', 400, 320);
+            }
+            
+            // Phase 2+: Show fighters
+            if (this.introPhase >= 2) {
+                const fighterAlpha = this.introPhase === 2 ? Math.min(1, this.introTimer) : 1;
+                ctx.globalAlpha = fighterAlpha;
+                
+                // Player side (left) - slides in from left
+                const playerX = this.introPhase === 2 ? -100 + this.introTimer * 150 : 200;
+                ctx.save();
+                ctx.shadowColor = '#ffd700';
+                ctx.shadowBlur = 40;
+                ctx.font = '120px Arial';
+                ctx.fillText('✡️', playerX, 420);
+                ctx.font = 'bold 24px Impact';
+                ctx.fillStyle = '#ffd700';
+                ctx.shadowBlur = 10;
+                ctx.fillText('THE HOLY ONE', playerX, 510);
+                ctx.restore();
+                
+                // Enemy side (right) - slides in from right
+                const enemyX = this.introPhase === 2 ? 900 - this.introTimer * 150 : 600;
+                ctx.save();
+                ctx.shadowColor = '#ff0000';
+                ctx.shadowBlur = 40;
+                ctx.font = '120px Arial';
+                ctx.fillText('💀', enemyX, 420);
+                ctx.font = 'bold 24px Impact';
+                ctx.fillStyle = '#ff4444';
+                ctx.shadowBlur = 10;
+                ctx.fillText('ANGEL OF DEATH', enemyX, 510);
+                ctx.restore();
+            }
+            
+            // Phase 3: FIGHT!
+            if (this.introPhase === 3) {
+                ctx.globalAlpha = 1;
+                const scale = 1 + (1 - Math.min(1, this.introTimer * 2)) * 2; // Starts big, shrinks
+                const shake = Math.sin(this.introTimer * 40) * 5;
+                
+                ctx.save();
+                ctx.translate(400 + shake, 300);
+                ctx.scale(scale, scale);
+                
+                // FIGHT text
+                ctx.shadowColor = '#00ff00';
+                ctx.shadowBlur = 50;
+                ctx.font = 'bold 100px Impact, Arial';
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 8;
+                ctx.strokeText('FIGHT!', 0, 0);
+                ctx.fillStyle = '#00ff00';
+                ctx.fillText('FIGHT!', 0, 0);
+                
+                ctx.restore();
+            }
+            
+            // Flash effect
+            if (this.introFlash > 0) {
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.introFlash * 0.7})`;
+                ctx.fillRect(0, 0, 800, 600);
+            }
+            
+            ctx.globalAlpha = 1;
+            ctx.shadowBlur = 0;
+            
+            // Restore from camera shake
+            if (this.introCameraShake > 0) {
+                ctx.restore();
+            }
+            return; // Don't render gameplay during intro
+        }
         
         // Dramatic clouds
         ctx.fillStyle = 'rgba(100, 50, 150, 0.3)';
@@ -589,16 +884,19 @@ class Level10 {
             ctx.fillText(this.messageText, 400, 290);
         }
         
-        // Controls and instructions at top
+        // Controls and instructions - positioned below the HP bars but above the fighters
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        ctx.fillRect(150, 115, 500, 45);
+        
         ctx.font = 'bold 14px Arial';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
         ctx.textAlign = 'center';
-        ctx.fillText('🎮 CONTROLS: ← → Move | ↑ Jump | Z Punch | X Special | C Block', 400, 25);
+        ctx.fillText('🎮 ← → Move | ↑ Jump | Z Punch | X Special | C Block', 400, 132);
         
         // Win condition hint
         ctx.font = '12px Arial';
-        ctx.fillStyle = 'rgba(255, 215, 0, 0.8)';
-        ctx.fillText('⚔️ Reduce Angel of Death HP to 0 to win! Use combos for bonus damage!', 400, 45);
+        ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+        ctx.fillText('⚔️ Reduce Angel of Death HP to 0 to win! Use combos for bonus damage!', 400, 152);
     }
     
     renderFighter(ctx, fighter, emoji, glowColor) {
@@ -672,12 +970,12 @@ class Level10 {
             height: 80,
             vx: 0,
             vy: 0,
-            speed: 150,
+            speed: this.settings.enemySpeed,
             grounded: true,
             facing: -1,
             emoji: '💀',
-            hp: 150,
-            maxHp: 150,
+            hp: this.settings.enemyHP,
+            maxHp: this.settings.enemyHP,
             state: 'idle',
             stateTimer: 0,
             aiTimer: 0,
@@ -690,7 +988,11 @@ class Level10 {
         this.matzahSpawnTimer = 10;
         this.complete = false;
         this.showMessage = false;
-        this.displayMessage('⚔️ FINAL BATTLE! ⚔️');
+        // Reset intro sequence
+        this.introPhase = 0;
+        this.introTimer = 0;
+        this.introFlash = 0;
+        this.introCameraShake = 0;
     }
 }
 

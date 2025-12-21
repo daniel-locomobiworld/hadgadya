@@ -451,6 +451,12 @@ class VSSplashScreen {
         for (let y = 0; y < 600; y += 4) {
             ctx.fillRect(0, y, 800, 2);
         }
+        
+        // Version number in corner for debugging
+        ctx.font = '10px Courier New';
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.5)';
+        ctx.textAlign = 'right';
+        ctx.fillText('v1.3.0', 795, 595);
     }
     
     drawLightning(progress) {

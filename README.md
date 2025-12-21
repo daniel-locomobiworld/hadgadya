@@ -2,7 +2,7 @@
 
 A retro arcade-style game based on the traditional Passover song "Chad Gadya" (One Little Goat). Play through all 10 verses of the song in unique game levels!
 
-🎮 **Play Now:** [hadgadya.netlify.app](https://hadgadya.netlify.app)
+🎮 **Play Now:** [shiny-pavlova-eff06f.netlify.app](https://shiny-pavlova-eff06f.netlify.app)
 
 ## 🐐 Game Overview
 

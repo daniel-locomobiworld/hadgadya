@@ -257,6 +257,14 @@ class GameEngine {
         // Cap delta time to prevent huge jumps
         this.deltaTime = Math.min(this.deltaTime, 0.1);
         
+        // Keep audio context alive - browsers can suspend it
+        if (window.audioManager && window.audioManager.synthContext) {
+            const ctx = window.audioManager.synthContext;
+            if (ctx.state === 'suspended') {
+                ctx.resume().catch(() => {});
+            }
+        }
+        
         if (!this.paused) {
             // Update awakeness
             if (!this.updateAwakeness(this.deltaTime)) {

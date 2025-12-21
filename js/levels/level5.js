@@ -27,12 +27,12 @@ class Level5 {
             rotSpeed: 2.5
         };
         
-        // Cities/bases to protect - now tracks hit status AND burning status
+        // Cities/bases to protect - now tracks hit status AND damaged status
         this.bases = [
-            { x: 100, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏠' },
-            { x: 300, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏡' },
-            { x: 500, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏠' },
-            { x: 700, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏡' }
+            { x: 100, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏠' },
+            { x: 300, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏡' },
+            { x: 500, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏠' },
+            { x: 700, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏡' }
         ];
         this.housesHit = 0;
         
@@ -91,20 +91,20 @@ class Level5 {
     }
     
     spawnElijah() {
-        // Elijah visits homes to drink wine and puts out fires
-        const burningBases = this.bases.filter(b => b.burning && b.alive);
-        if (burningBases.length === 0) return;
+        // Elijah visits homes to drink wine and repair damaged houses
+        const damagedBases = this.bases.filter(b => b.damaged && b.alive);
+        if (damagedBases.length === 0) return;
         
-        // Pick a random burning house to visit
-        const targetBase = burningBases[Math.floor(Math.random() * burningBases.length)];
+        // Pick a random damaged house to visit
+        const targetBase = damagedBases[Math.floor(Math.random() * damagedBases.length)];
         
         this.elijah = {
-            x: -50,
-            y: 520,
-            targetX: targetBase.x + targetBase.width/2,
+            x: targetBase.x + targetBase.width/2,
+            y: -50,  // Start from top of screen
+            targetY: 520,  // Move down to ground level
             targetBase: targetBase,
-            speed: 80,
-            state: 'walking', // walking, drinking, leaving
+            speed: 100,
+            state: 'descending', // descending, drinking, ascending
             drinkTimer: 0,
             emoji: '🧔'
         };
@@ -125,10 +125,10 @@ class Level5 {
         
         const e = this.elijah;
         
-        if (e.state === 'walking') {
-            // Walk toward target house
-            if (e.x < e.targetX - 10) {
-                e.x += e.speed * dt;
+        if (e.state === 'descending') {
+            // Descend from top toward target house
+            if (e.y < e.targetY - 10) {
+                e.y += e.speed * dt;
             } else {
                 e.state = 'drinking';
                 e.drinkTimer = 3; // Drink wine for 3 seconds
@@ -136,23 +136,23 @@ class Level5 {
         } else if (e.state === 'drinking') {
             e.drinkTimer -= dt;
             
-            // Put out the fire while drinking!
-            if (e.targetBase.burning) {
-                e.targetBase.burnTimer -= dt * 2; // Put out fire faster
-                if (e.targetBase.burnTimer <= 0) {
-                    e.targetBase.burning = false;
-                    e.targetBase.burnTimer = 0;
+            // Repair the house while drinking!
+            if (e.targetBase.damaged) {
+                e.targetBase.repairProgress = (e.targetBase.repairProgress || 0) + dt * 0.5;
+                if (e.targetBase.repairProgress >= 1) {
+                    e.targetBase.damaged = false;
+                    e.targetBase.repairProgress = 0;
                     this.housesHit--;
-                    this.displayMessage('🧔 Elijah put out the fire! 🍷');
+                    this.displayMessage('🧔 Elijah repaired the house! 🍷');
                 }
             }
             
             if (e.drinkTimer <= 0) {
-                e.state = 'leaving';
+                e.state = 'ascending';
             }
-        } else if (e.state === 'leaving') {
-            e.x += e.speed * dt;
-            if (e.x > 850) {
+        } else if (e.state === 'ascending') {
+            e.y -= e.speed * dt;  // Go back up
+            if (e.y < -50) {
                 this.elijah = null;
             }
         }
@@ -214,9 +214,9 @@ class Level5 {
         // Update Elijah
         this.updateElijah(dt);
         
-        // Spawn Elijah when houses are burning
-        const burningHouses = this.bases.filter(b => b.burning && b.alive).length;
-        if (burningHouses > 0 && !this.elijah && Math.random() < 0.003) {
+        // Spawn Elijah when houses are damaged
+        const damagedHouses = this.bases.filter(b => b.damaged && b.alive).length;
+        if (damagedHouses > 0 && !this.elijah && Math.random() < 0.003) {
             this.spawnElijah();
         }
         
@@ -242,22 +242,8 @@ class Level5 {
             return matzah.y < 600;
         });
         
-        // Update burning houses timers
-        this.bases.forEach(base => {
-            if (base.burning && base.alive) {
-                base.burnTimer += dt;
-                // House is destroyed after burning for 10 seconds
-                if (base.burnTimer > 10) {
-                    base.alive = false;
-                    base.burning = false;
-                    this.createExplosion(base.x + base.width/2, base.y, 60, '#ff0000');
-                    this.displayMessage('💀 A house burned down!');
-                    if (window.audioManager) {
-                        window.audioManager.playSynthSound('death');
-                    }
-                }
-            }
-        });
+        // Damaged houses stay damaged until Elijah repairs them
+        // No auto-destroy timer - damage is cosmetic
         
         // Check win condition - Complete after wave 3 when all sticks in wave are cleared
         const totalSticksToSpawn = this.waveStickCounts[0] + this.waveStickCounts[1] + this.waveStickCounts[2];
@@ -271,12 +257,12 @@ class Level5 {
             }, 2000);
         }
         
-        // Check lose condition - all 4 houses burning at once OR all destroyed
-        const basesBurning = this.bases.filter(b => b.burning && b.alive).length;
+        // Check lose condition - all 4 houses damaged at once OR all destroyed
+        const basesDamaged = this.bases.filter(b => b.damaged && b.alive).length;
         const basesAlive = this.bases.filter(b => b.alive).length;
         
-        if (basesBurning === 4) {
-            this.displayMessage('💀 All 4 houses are on fire! Try Again!');
+        if (basesDamaged === 4) {
+            this.displayMessage('💀 All 4 houses are damaged! Try Again!');
             setTimeout(() => this.reset(), 2000);
             return;
         }
@@ -323,7 +309,7 @@ class Level5 {
     }
     
     spawnStick() {
-        // Only target alive, non-burning houses
+        // Target alive houses
         const targetableBases = this.bases.filter(b => b.alive);
         const targetBase = targetableBases[Math.floor(Math.random() * targetableBases.length)];
         if (!targetBase) return;
@@ -369,12 +355,11 @@ class Level5 {
                 // Check which base was hit
                 for (let base of this.bases) {
                     if (base.alive && stick.x >= base.x && stick.x <= base.x + base.width) {
-                        // House starts burning instead of immediately dying
-                        if (!base.burning) {
-                            base.burning = true;
-                            base.burnTimer = 0;
+                        // House gets damaged (not on fire)
+                        if (!base.damaged) {
+                            base.damaged = true;
                             this.housesHit++;
-                            this.displayMessage(`🔥 House hit! ${this.housesHit} of 4 houses burning!`);
+                            this.displayMessage(`🏠 House damaged! ${this.housesHit} of 4 houses need repair!`);
                             // Boom sound when house hit
                             if (window.audioManager) {
                                 window.audioManager.playSynthSound('explosion');
@@ -530,30 +515,22 @@ class Level5 {
         ctx.fillStyle = '#2d5a27';
         ctx.fillRect(0, 560, 800, 40);
         
-        // Draw bases - with burning animation
+        // Draw bases - with damaged state
         this.bases.forEach(base => {
             ctx.font = '40px Arial';
             ctx.textAlign = 'center';
             
             if (!base.alive) {
-                // Destroyed house - just embers
+                // Destroyed house - just rubble
                 ctx.globalAlpha = 0.3;
                 ctx.fillText('🏚️', base.x + base.width/2, base.y + 20);
                 ctx.globalAlpha = 1;
-            } else if (base.burning) {
-                // House is on fire but still alive
-                ctx.fillText(base.emoji, base.x + base.width/2, base.y + 20);
-                // Animated fire on top
-                const fireOffset = Math.sin(this.engine.totalTime * 10) * 3;
-                ctx.font = '30px Arial';
-                ctx.fillText('🔥', base.x + base.width/2, base.y - 10 + fireOffset);
-                // Fire intensity grows with burn timer
-                if (base.burnTimer > 3) {
-                    ctx.fillText('🔥', base.x + base.width/2 - 20, base.y + fireOffset);
-                }
-                if (base.burnTimer > 6) {
-                    ctx.fillText('🔥', base.x + base.width/2 + 20, base.y + 5 + fireOffset);
-                }
+            } else if (base.damaged) {
+                // House is damaged but still standing - show derelict house
+                ctx.fillText('🏚️', base.x + base.width/2, base.y + 20);
+                // Show damage indicator
+                ctx.font = '20px Arial';
+                ctx.fillText('⚠️', base.x + base.width/2, base.y - 15);
             } else {
                 // Normal house
                 ctx.fillText(base.emoji, base.x + base.width/2, base.y + 20);
@@ -662,10 +639,10 @@ class Level5 {
         ctx.fillText(`Wave: ${this.wave} of 3`, 20, 95);
         
         // Houses hit counter
-        const burningCount = this.bases.filter(b => b.burning && b.alive).length;
-        if (burningCount > 0) {
-            ctx.fillStyle = burningCount >= 3 ? '#ff4444' : '#ffaa00';
-            ctx.fillText(`🔥 ${burningCount} of 4 houses burning!`, 20, 115);
+        const damagedCount = this.bases.filter(b => b.damaged && b.alive).length;
+        if (damagedCount > 0) {
+            ctx.fillStyle = damagedCount >= 3 ? '#ff4444' : '#ffaa00';
+            ctx.fillText(`⚠️ ${damagedCount} of 4 houses damaged!`, 20, 115);
         } else {
             ctx.fillStyle = '#44ff44';
             ctx.fillText(`Houses safe: 4`, 20, 115);
@@ -736,10 +713,10 @@ class Level5 {
             rotSpeed: 2.5
         };
         this.bases = [
-            { x: 100, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏠' },
-            { x: 300, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏡' },
-            { x: 500, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏠' },
-            { x: 700, y: 560, width: 80, height: 40, alive: true, burning: false, burnTimer: 0, emoji: '🏡' }
+            { x: 100, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏠' },
+            { x: 300, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏡' },
+            { x: 500, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏠' },
+            { x: 700, y: 560, width: 80, height: 40, alive: true, damaged: false, emoji: '🏡' }
         ];
         this.housesHit = 0;
         this.sticks = [];

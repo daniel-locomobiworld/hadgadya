@@ -399,23 +399,35 @@ class Level1 {
             ctx.fillText('Press SPACE near vases to search for coins!', 400, 580);
         }
         
-        // INSTRUCTIONS OVERLAY
+        // INSTRUCTIONS OVERLAY - make it VERY visible!
         if (this.showInstructions && this.instructionsTimer > 0) {
             const alpha = Math.min(1, this.instructionsTimer / 0.5);
-            ctx.fillStyle = `rgba(0, 0, 0, ${0.75 * alpha})`;
-            ctx.fillRect(200, 180, 400, 220);
+            
+            // Darker, more prominent background
+            ctx.fillStyle = `rgba(0, 0, 0, ${0.9 * alpha})`;
+            ctx.fillRect(100, 150, 600, 280);
+            
+            // Glowing gold border
             ctx.strokeStyle = `rgba(255, 215, 0, ${alpha})`;
-            ctx.lineWidth = 3;
-            ctx.strokeRect(200, 180, 400, 220);
+            ctx.lineWidth = 5;
+            ctx.strokeRect(100, 150, 600, 280);
+            
+            // Inner glow
+            ctx.strokeStyle = `rgba(255, 180, 0, ${alpha * 0.5})`;
+            ctx.lineWidth = 2;
+            ctx.strokeRect(105, 155, 590, 270);
             
             ctx.textAlign = 'center';
             ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-            let y = 220;
+            ctx.shadowColor = '#ffd700';
+            ctx.shadowBlur = 10;
+            let y = 200;
             for (let line of this.controlsText) {
-                ctx.font = line.includes('CONTROLS') ? 'bold 24px Arial' : '18px Arial';
+                ctx.font = line.includes('CONTROLS') ? 'bold 32px Arial' : '22px Arial';
                 ctx.fillText(line, 400, y);
-                y += 32;
+                y += 40;
             }
+            ctx.shadowBlur = 0;
         }
     }
     

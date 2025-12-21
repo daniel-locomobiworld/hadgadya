@@ -270,9 +270,9 @@ class VSSplashScreen {
         const nameY = 450;
         ctx.shadowBlur = 20;
         
-        // Each side gets half the screen width with clear separation
-        const boxWidth = 320;
-        const boxX = isLeft ? 40 : 440; // Left: 40-360, Right: 440-760 (80px gap in middle)
+        // Each side gets half the screen width with VERY clear separation
+        const boxWidth = 280;
+        const boxX = isLeft ? 20 : 500; // Left: 20-300, Right: 500-780 (200px gap in middle!)
         
         // Name background
         ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';

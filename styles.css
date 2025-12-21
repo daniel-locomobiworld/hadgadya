@@ -405,6 +405,15 @@ body::before {
     opacity: 0.7;
 }
 
+.version {
+    position: absolute;
+    bottom: 5px;
+    font-size: 10px;
+    opacity: 0.5;
+    color: #0ff;
+    font-family: 'Courier New', monospace;
+}
+
 /* Difficulty Selector */
 .difficulty-selector {
     display: flex;

@@ -267,15 +267,15 @@ class VSSplashScreen {
         ctx.restore();
         
         // Name plate - FIXED POSITIONS for left/right halves (no overlap!)
-        const nameY = 420;
+        const nameY = 450;
         ctx.shadowBlur = 20;
         
-        // Fixed width boxes that don't overlap
-        const boxWidth = 180;
-        const boxX = isLeft ? 60 : 560; // Left side: 60-240, Right side: 560-740
+        // Each side gets half the screen width with clear separation
+        const boxWidth = 320;
+        const boxX = isLeft ? 40 : 440; // Left: 40-360, Right: 440-760 (80px gap in middle)
         
         // Name background
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
         ctx.fillRect(boxX, nameY - 25, boxWidth, 50);
         
         // Border
@@ -284,11 +284,11 @@ class VSSplashScreen {
         ctx.strokeRect(boxX, nameY - 25, boxWidth, 50);
         
         // Name text - centered in the box
-        ctx.font = 'bold 22px "Courier New", monospace';
+        ctx.font = 'bold 24px "Courier New", monospace';
         ctx.fillStyle = color;
         ctx.shadowColor = color;
         ctx.shadowBlur = 10;
-        ctx.fillText(fighter.name, boxX + boxWidth/2, nameY);
+        ctx.fillText(fighter.name, boxX + boxWidth/2, nameY + 5);
         
         ctx.restore();
     }

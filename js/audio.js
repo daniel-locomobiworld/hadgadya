@@ -473,7 +473,9 @@ class AudioManager {
             'Hail': 'move14',
             'Locusts': 'move15',
             'Darkness': 'move16',
-            'Burning Bush': 'move17'
+            'Burning Bush': 'move17',
+            // Additional moves that were missing!
+            'Cholent Throw': 'move18'
         };
         return moveMap[moveName];
     }

@@ -64,11 +64,33 @@ class HadGadyaGame {
     }
     
     setupUI() {
+        // Track if we've started audio yet (browsers require user interaction)
+        let audioStarted = false;
+        
+        // Start menu music on first interaction
+        const startAudioOnce = () => {
+            if (!audioStarted) {
+                audioStarted = true;
+                // Resume audio context and play menu theme
+                if (window.audioManager && window.audioManager.synthContext) {
+                    if (window.audioManager.synthContext.state === 'suspended') {
+                        window.audioManager.synthContext.resume();
+                    }
+                }
+                // Play a little jingle to indicate audio is working
+                if (window.audioManager) {
+                    window.audioManager.playSynthSound('levelStart');
+                }
+            }
+        };
+        
         // Add sound to all menu buttons
         const playBlip = () => {
+            startAudioOnce();
             if (window.audioManager) window.audioManager.playSynthSound('blip');
         };
         const playSelect = () => {
+            startAudioOnce();
             if (window.audioManager) window.audioManager.playSynthSound('select');
         };
         

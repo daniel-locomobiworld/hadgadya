@@ -461,8 +461,8 @@ class Level6 {
         for (let wall of this.walls) {
             if (this.rectCollision(newX, newY, 15, wall)) {
                 blocked = true;
-                // Set wall on fire!
-                if (!wall.burning) {
+                // Set wall on fire! (only if fire not yet fully caught)
+                if (!wall.burning && this.firesCaught < this.firesNeeded) {
                     wall.burning = true;
                     wall.burnTimer = 0;
                     this.displayMessage('🔥 A wall caught fire!');
@@ -594,6 +594,11 @@ class Level6 {
     }
     
     updateFireSpread(dt) {
+        // Once fire is caught 3 times, no more spreading!
+        if (this.firesCaught >= this.firesNeeded) {
+            return; // Fire is defeated, stop spreading
+        }
+        
         // Fire lights nearby burnable objects on fire - larger range!
         for (let obj of this.burnableObjects) {
             if (!obj.burning) {

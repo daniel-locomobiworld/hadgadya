@@ -220,7 +220,7 @@ class Level7 {
         
         // Play kid sound
         if (window.audioManager) {
-            window.audioManager.playRandomKidSound();
+            window.audioManager.playKidSound();
         }
     }
     

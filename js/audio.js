@@ -422,10 +422,25 @@ class AudioManager {
             }
         }
         
-        // Fallback to API
-        const dramaticName = moveName.toUpperCase() + "!";
-        const audioUrl = await this.generateSpeech(dramaticName, this.voices.narrator);
-        return this.playAnnouncer(audioUrl, 0.9);
+        // Fallback to browser speech synthesis (works offline!)
+        this.speakMove(moveName);
+    }
+    
+    // Browser speech synthesis fallback for moves without pre-generated audio
+    speakMove(moveName) {
+        if (!window.speechSynthesis) return;
+        
+        const utterance = new SpeechSynthesisUtterance(moveName.toUpperCase() + "!");
+        utterance.rate = 0.9;
+        utterance.pitch = 0.8;
+        utterance.volume = 0.9;
+        
+        // Try to find a deep/dramatic voice
+        const voices = window.speechSynthesis.getVoices();
+        const maleVoice = voices.find(v => v.name.includes('Male') || v.name.includes('David') || v.name.includes('Daniel'));
+        if (maleVoice) utterance.voice = maleVoice;
+        
+        window.speechSynthesis.speak(utterance);
     }
     
     // Separate play method for announcer audio - doesn't interrupt regular audio!

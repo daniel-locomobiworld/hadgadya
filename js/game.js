@@ -448,6 +448,11 @@ class HadGadyaGame {
     }
     
     actuallyStartGame() {
+        // Play epic Mortal Kombat style FIGHT sound!
+        if (window.audioManager) {
+            window.audioManager.playSynthSound('fightStart');
+        }
+        
         // Log game start
         if (window.supabaseClient) {
             window.supabaseClient.logGameStart(this.selectedDifficulty);

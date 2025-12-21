@@ -1,12 +1,12 @@
 // Level 7: An Ox comes and drinks the Water
-// Drink 75% of the water! Dodge kids running around!
+// Drink all the water! Dodge kids running around!
 
 class Level7 {
     constructor(engine, difficulty = 'normal') {
         this.engine = engine;
         this.difficulty = difficulty;
         this.name = "Drink the Water";
-        this.description = "You are the Ox! Drink 75% of the water while dodging the hyperactive kids!";
+        this.description = "You are the Ox! Drink all the water while dodging the hyperactive kids!";
         this.instructions = "Arrow keys/WASD to move. Collect 💧 water drops. Avoid the kids!";
         this.icon = "🐂";
         
@@ -84,7 +84,7 @@ class Level7 {
             '🎮 CONTROLS',
             '⬆️⬇️⬅️➡️ or WASD - Move',
             '',
-            '🎯 GOAL: Drink 75% of water!',
+            '🎯 GOAL: Drink all the water!',
             '⚠️ Avoid the kids!'
         ];
         
@@ -93,7 +93,7 @@ class Level7 {
             this.spawnWaterDrop();
         }
         
-        this.displayMessage('🐂 Drink 75% of the water! 💧');
+        this.displayMessage('🐂 Drink all the water! 💧');
     }
     
     initKids() {
@@ -892,7 +892,7 @@ class Level7 {
             this.spawnWaterDrop();
         }
         
-        this.displayMessage('🐂 Drink 75% of the water! 💧');
+        this.displayMessage('🐂 Drink all the water! 💧');
     }
 }
 

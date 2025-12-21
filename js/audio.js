@@ -1188,6 +1188,73 @@ class AudioManager {
             osc1.stop(ctx.currentTime + 0.08);
             osc2.stop(ctx.currentTime + 0.15);
             
+        } else if (type === 'fightStart') {
+            // MORTAL KOMBAT STYLE "FIGHT!" sound - epic gong + synth sweep
+            // Low gong hit
+            const gongOsc = ctx.createOscillator();
+            const gongGain = ctx.createGain();
+            gongOsc.type = 'sine';
+            gongOsc.frequency.setValueAtTime(80, ctx.currentTime);
+            gongOsc.frequency.exponentialRampToValueAtTime(40, ctx.currentTime + 1.5);
+            gongGain.gain.setValueAtTime(0.5, ctx.currentTime);
+            gongGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 1.5);
+            gongOsc.connect(gongGain);
+            gongGain.connect(ctx.destination);
+            gongOsc.start();
+            gongOsc.stop(ctx.currentTime + 1.5);
+            
+            // Metallic crash layer
+            const crashDuration = 0.8;
+            const crashSize = ctx.sampleRate * crashDuration;
+            const crashBuffer = ctx.createBuffer(1, crashSize, ctx.sampleRate);
+            const crashData = crashBuffer.getChannelData(0);
+            for (let i = 0; i < crashSize; i++) {
+                const decay = Math.exp(-i / (crashSize * 0.15));
+                crashData[i] = (Math.random() * 2 - 1) * decay;
+            }
+            const crashSource = ctx.createBufferSource();
+            crashSource.buffer = crashBuffer;
+            const crashFilter = ctx.createBiquadFilter();
+            crashFilter.type = 'bandpass';
+            crashFilter.frequency.value = 3000;
+            crashFilter.Q.value = 2;
+            const crashGain = ctx.createGain();
+            crashGain.gain.value = 0.3;
+            crashSource.connect(crashFilter);
+            crashFilter.connect(crashGain);
+            crashGain.connect(ctx.destination);
+            crashSource.start();
+            
+            // Rising synth sweep (dramatic!)
+            const sweepOsc = ctx.createOscillator();
+            const sweepGain = ctx.createGain();
+            sweepOsc.type = 'sawtooth';
+            sweepOsc.frequency.setValueAtTime(100, ctx.currentTime);
+            sweepOsc.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.3);
+            sweepOsc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.5);
+            sweepGain.gain.setValueAtTime(0.3, ctx.currentTime);
+            sweepGain.gain.linearRampToValueAtTime(0.4, ctx.currentTime + 0.3);
+            sweepGain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.6);
+            sweepOsc.connect(sweepGain);
+            sweepGain.connect(ctx.destination);
+            sweepOsc.start();
+            sweepOsc.stop(ctx.currentTime + 0.6);
+            
+            // Power chord stab
+            const chordFreqs = [130.81, 196, 261.63, 392]; // C power chord
+            chordFreqs.forEach((freq, i) => {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'square';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, ctx.currentTime + 0.1);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start(ctx.currentTime + 0.1);
+                osc.stop(ctx.currentTime + 0.5);
+            });
+            
         } else if (type === 'levelStart') {
             // Level start fanfare - rising arpeggio
             const notes = [262, 330, 392, 523]; // C major arpeggio

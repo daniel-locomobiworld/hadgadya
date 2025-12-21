@@ -266,26 +266,29 @@ class VSSplashScreen {
         ctx.fillText(fighter.emoji, 0, 0);
         ctx.restore();
         
-        // Name plate
+        // Name plate - FIXED POSITIONS for left/right halves (no overlap!)
         const nameY = 420;
         ctx.shadowBlur = 20;
         
+        // Fixed width boxes that don't overlap
+        const boxWidth = 180;
+        const boxX = isLeft ? 60 : 560; // Left side: 60-240, Right side: 560-740
+        
         // Name background
-        const nameWidth = ctx.measureText(fighter.name).width + 40;
         ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(x - nameWidth/2 - 10, nameY - 25, nameWidth + 20, 50);
+        ctx.fillRect(boxX, nameY - 25, boxWidth, 50);
         
         // Border
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-        ctx.strokeRect(x - nameWidth/2 - 10, nameY - 25, nameWidth + 20, 50);
+        ctx.strokeRect(boxX, nameY - 25, boxWidth, 50);
         
-        // Name text
-        ctx.font = 'bold 28px "Courier New", monospace';
+        // Name text - centered in the box
+        ctx.font = 'bold 22px "Courier New", monospace';
         ctx.fillStyle = color;
         ctx.shadowColor = color;
         ctx.shadowBlur = 10;
-        ctx.fillText(fighter.name, x, nameY);
+        ctx.fillText(fighter.name, boxX + boxWidth/2, nameY);
         
         ctx.restore();
     }

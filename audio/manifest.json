@@ -355,6 +355,12 @@
       "hash": "10bee619e284",
       "text": "BURNING BUSH!",
       "voice": "brock"
+    },
+    "move18": {
+      "file": "moves_move18_7e0eb16a504e.mp3",
+      "hash": "7e0eb16a504e",
+      "text": "CHOLENT THROW!",
+      "voice": "brock"
     }
   },
   "kids": {

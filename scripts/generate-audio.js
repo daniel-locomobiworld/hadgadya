@@ -111,7 +111,8 @@ const AUDIO_MANIFEST = {
             move14: "HAIL!",
             move15: "LOCUSTS!",
             move16: "DARKNESS!",
-            move17: "BURNING BUSH!"
+            move17: "BURNING BUSH!",
+            move18: "CHOLENT THROW!"
         }
     },
     

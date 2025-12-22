@@ -1078,3 +1078,53 @@ body::before {
     max-height: 85vh !important;
     object-fit: contain;
 }
+
+/* Site Footer - Jon Papernick Credit */
+#site-footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding: 10px 20px;
+    background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.9) 30%);
+    z-index: 100;
+}
+
+#site-footer a {
+    font-family: 'Press Start 2P', 'Courier New', monospace;
+    font-size: 10px;
+    color: #ff00ff;
+    text-decoration: none;
+    text-shadow: 
+        0 0 10px #ff00ff,
+        0 0 20px #ff00ff,
+        0 0 30px #00ffff;
+    transition: all 0.3s ease;
+    display: inline-block;
+    padding: 5px 15px;
+    border: 2px solid transparent;
+    border-radius: 5px;
+}
+
+#site-footer a:hover {
+    color: #00ffff;
+    text-shadow: 
+        0 0 10px #00ffff,
+        0 0 20px #00ffff,
+        0 0 40px #ff00ff;
+    border-color: #ff00ff;
+    background: rgba(255, 0, 255, 0.1);
+    transform: scale(1.05);
+}
+
+@media screen and (max-width: 600px) {
+    #site-footer {
+        padding: 8px 10px;
+    }
+    
+    #site-footer a {
+        font-size: 8px;
+        padding: 4px 10px;
+    }
+}

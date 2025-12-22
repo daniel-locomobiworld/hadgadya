@@ -87,6 +87,11 @@ class BonusLevel {
             { emoji: '🦗', text: 'A locust! One of the ten plagues escaped!' },
             { emoji: '🐸', text: 'A frog! Another plague escapee!' },
             { emoji: '🌙', text: 'A moon decoration. It IS the full moon!' },
+            { emoji: '📚', text: 'I found a book "I Am My Beloveds" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "Gallery of the Disappeared Men" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "The Book of Stone" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "The Ascent of Eli Israel and Other Stories" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "There Is No Other" by Jon Papernick!' }
         ];
         
         // Shuffle funny items

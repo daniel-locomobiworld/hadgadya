@@ -822,20 +822,127 @@ class VSSplashScreen {
                 ctx.fillStyle = '#00ff00';
                 ctx.shadowColor = '#00ff00';
                 ctx.shadowBlur = 20;
-                ctx.fillText('🎮 PRESS START 🎮', 400, 520);
+                ctx.fillText('🎮 PRESS START 🎮', 400, 480);
                 ctx.restore();
             }
         }
         
-        // Credits
+        // Draw Jon the Bookpeddler - 80's retro style portrait
+        if (progress > 0.4) {
+            this.drawRetroJonPortrait(ctx, progress);
+        }
+        
+        // Credits - Jon Papernick
         if (progress > 0.5) {
             ctx.save();
-            ctx.font = '14px "Courier New", monospace';
+            ctx.font = 'bold 14px "Courier New", monospace';
             ctx.textAlign = 'center';
-            ctx.fillStyle = '#888888';
-            ctx.fillText('A Passover Game for the Whole Family 🍷', 400, 570);
+            ctx.fillStyle = '#ff00ff';
+            ctx.shadowColor = '#ff00ff';
+            ctx.shadowBlur = 10;
+            ctx.fillText('Brought to you by Jon Papernick the Bookpeddler', 400, 555);
+            ctx.font = '11px "Courier New", monospace';
+            ctx.fillStyle = '#00ffff';
+            ctx.shadowColor = '#00ffff';
+            ctx.shadowBlur = 8;
+            ctx.fillText('jonpapernick.com', 400, 575);
             ctx.restore();
         }
+    }
+    
+    // Draw 80's retro pixelated portrait of Jon the Bookpeddler
+    drawRetroJonPortrait(ctx, progress) {
+        const portraitProgress = Math.min((progress - 0.4) * 3, 1);
+        if (portraitProgress <= 0) return;
+        
+        ctx.save();
+        ctx.globalAlpha = portraitProgress;
+        
+        // Position in corner - small retro portrait
+        const x = 720;
+        const y = 380;
+        const size = 60;
+        
+        // Neon glow effect
+        ctx.shadowColor = '#ff00ff';
+        ctx.shadowBlur = 15 + Math.sin(Date.now() * 0.005) * 5;
+        
+        // 80's style frame with neon border
+        ctx.strokeStyle = '#00ffff';
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x - size/2 - 5, y - size/2 - 5, size + 10, size + 10);
+        
+        // Inner magenta frame
+        ctx.strokeStyle = '#ff00ff';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - size/2 - 2, y - size/2 - 2, size + 4, size + 4);
+        
+        // Dark background
+        ctx.fillStyle = '#1a0a2e';
+        ctx.fillRect(x - size/2, y - size/2, size, size);
+        
+        // Draw 8-bit style portrait of Jon
+        // Head/face (skin tone)
+        ctx.fillStyle = '#deb887';
+        ctx.fillRect(x - 15, y - 20, 30, 35);
+        
+        // Bald head top
+        ctx.fillStyle = '#deb887';
+        ctx.fillRect(x - 12, y - 25, 24, 10);
+        
+        // Glasses - thick black frames
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(x - 18, y - 12, 36, 12);
+        
+        // Glasses lenses
+        ctx.fillStyle = '#4a6fa5';
+        ctx.fillRect(x - 15, y - 10, 12, 8);
+        ctx.fillRect(x + 3, y - 10, 12, 8);
+        
+        // Bridge of glasses
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(x - 3, y - 8, 6, 4);
+        
+        // Goatee/beard
+        ctx.fillStyle = '#6b6b6b';
+        ctx.fillRect(x - 8, y + 5, 16, 12);
+        ctx.fillRect(x - 5, y + 17, 10, 3);
+        
+        // Mustache
+        ctx.fillStyle = '#5a5a5a';
+        ctx.fillRect(x - 10, y + 2, 20, 4);
+        
+        // Shirt/collar - gray
+        ctx.fillStyle = '#666666';
+        ctx.fillRect(x - 20, y + 20, 40, 15);
+        
+        // Collar V-neck detail
+        ctx.fillStyle = '#555555';
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y + 20);
+        ctx.lineTo(x, y + 28);
+        ctx.lineTo(x + 5, y + 20);
+        ctx.fill();
+        
+        // White stitch detail on shirt
+        ctx.fillStyle = '#888888';
+        ctx.fillRect(x - 18, y + 22, 1, 10);
+        ctx.fillRect(x + 17, y + 22, 1, 10);
+        
+        // Pixel scanline effect over portrait
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
+        for (let i = y - size/2; i < y + size/2; i += 3) {
+            ctx.fillRect(x - size/2, i, size, 1);
+        }
+        
+        // Add "📚" book emoji next to portrait
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.shadowColor = '#ffd700';
+        ctx.shadowBlur = 10;
+        ctx.fillText('📚', x, y + 50);
+        
+        ctx.restore();
     }
     
     // Handle input to dismiss title screen

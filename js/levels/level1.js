@@ -98,7 +98,12 @@ class Level1 {
             { emoji: '🥔', text: 'A single potato. For the kugel?' },
             { emoji: '👓', text: 'Your Zayde\'s reading glasses! He\'s been looking for these!' },
             { emoji: '🏆', text: 'A "World\'s Best Grandchild" trophy. Dusty.' },
-            { emoji: '🥚', text: 'A hardboiled egg. Very symbolic. Very empty.' }
+            { emoji: '🥚', text: 'A hardboiled egg. Very symbolic. Very empty.' },
+            { emoji: '📚', text: 'I found a book "I Am My Beloveds" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "Gallery of the Disappeared Men" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "The Book of Stone" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "The Ascent of Eli Israel and Other Stories" by Jon Papernick!' },
+            { emoji: '📚', text: 'I found a book "There Is No Other" by Jon Papernick!' }
         ];
         
         // Randomly select 2 vases to have coins

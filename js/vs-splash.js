@@ -126,6 +126,14 @@ class VSSplashScreen {
         
         const battle = this.battles[levelNum] || this.battles[1];
         
+        // Stop any existing music first (from title screen or previous level)
+        if (window.audioManager) {
+            window.audioManager.stopVSTheme();
+        }
+        if (window.titleMusic) {
+            window.titleMusic.stop();
+        }
+        
         // Play epic Mortal Kombat style theme music!
         if (window.audioManager) {
             window.audioManager.playVSTheme();
@@ -858,89 +866,94 @@ class VSSplashScreen {
         ctx.save();
         ctx.globalAlpha = portraitProgress;
         
-        // Position in corner - small retro portrait
-        const x = 720;
+        // Position in center - larger retro portrait
+        const x = 400;
         const y = 380;
-        const size = 60;
+        const size = 120;
         
         // Neon glow effect
         ctx.shadowColor = '#ff00ff';
-        ctx.shadowBlur = 15 + Math.sin(Date.now() * 0.005) * 5;
+        ctx.shadowBlur = 25 + Math.sin(Date.now() * 0.005) * 8;
         
         // 80's style frame with neon border
         ctx.strokeStyle = '#00ffff';
-        ctx.lineWidth = 3;
-        ctx.strokeRect(x - size/2 - 5, y - size/2 - 5, size + 10, size + 10);
+        ctx.lineWidth = 4;
+        ctx.strokeRect(x - size/2 - 8, y - size/2 - 8, size + 16, size + 16);
         
         // Inner magenta frame
         ctx.strokeStyle = '#ff00ff';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x - size/2 - 2, y - size/2 - 2, size + 4, size + 4);
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x - size/2 - 3, y - size/2 - 3, size + 6, size + 6);
         
         // Dark background
         ctx.fillStyle = '#1a0a2e';
         ctx.fillRect(x - size/2, y - size/2, size, size);
         
-        // Draw 8-bit style portrait of Jon
+        // Draw 8-bit style portrait of Jon (scaled up 2x)
         // Head/face (skin tone)
         ctx.fillStyle = '#deb887';
-        ctx.fillRect(x - 15, y - 20, 30, 35);
+        ctx.fillRect(x - 30, y - 40, 60, 70);
         
         // Bald head top
         ctx.fillStyle = '#deb887';
-        ctx.fillRect(x - 12, y - 25, 24, 10);
+        ctx.fillRect(x - 24, y - 50, 48, 20);
         
         // Glasses - thick black frames
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(x - 18, y - 12, 36, 12);
+        ctx.fillRect(x - 36, y - 24, 72, 24);
         
         // Glasses lenses
         ctx.fillStyle = '#4a6fa5';
-        ctx.fillRect(x - 15, y - 10, 12, 8);
-        ctx.fillRect(x + 3, y - 10, 12, 8);
+        ctx.fillRect(x - 30, y - 20, 24, 16);
+        ctx.fillRect(x + 6, y - 20, 24, 16);
         
         // Bridge of glasses
         ctx.fillStyle = '#1a1a1a';
-        ctx.fillRect(x - 3, y - 8, 6, 4);
+        ctx.fillRect(x - 6, y - 16, 12, 8);
         
         // Goatee/beard
         ctx.fillStyle = '#6b6b6b';
-        ctx.fillRect(x - 8, y + 5, 16, 12);
-        ctx.fillRect(x - 5, y + 17, 10, 3);
+        ctx.fillRect(x - 16, y + 10, 32, 24);
+        ctx.fillRect(x - 10, y + 34, 20, 6);
         
         // Mustache
         ctx.fillStyle = '#5a5a5a';
-        ctx.fillRect(x - 10, y + 2, 20, 4);
+        ctx.fillRect(x - 20, y + 4, 40, 8);
         
         // Shirt/collar - gray
         ctx.fillStyle = '#666666';
-        ctx.fillRect(x - 20, y + 20, 40, 15);
+        ctx.fillRect(x - 40, y + 40, 80, 30);
         
         // Collar V-neck detail
         ctx.fillStyle = '#555555';
         ctx.beginPath();
-        ctx.moveTo(x - 5, y + 20);
-        ctx.lineTo(x, y + 28);
-        ctx.lineTo(x + 5, y + 20);
+        ctx.moveTo(x - 10, y + 40);
+        ctx.lineTo(x, y + 56);
+        ctx.lineTo(x + 10, y + 40);
         ctx.fill();
         
         // White stitch detail on shirt
         ctx.fillStyle = '#888888';
-        ctx.fillRect(x - 18, y + 22, 1, 10);
-        ctx.fillRect(x + 17, y + 22, 1, 10);
+        ctx.fillRect(x - 36, y + 44, 2, 20);
+        ctx.fillRect(x + 34, y + 44, 2, 20);
         
         // Pixel scanline effect over portrait
         ctx.fillStyle = 'rgba(0, 0, 0, 0.15)';
-        for (let i = y - size/2; i < y + size/2; i += 3) {
-            ctx.fillRect(x - size/2, i, size, 1);
+        for (let i = y - size/2; i < y + size/2; i += 4) {
+            ctx.fillRect(x - size/2, i, size, 2);
         }
         
-        // Add "📚" book emoji next to portrait
-        ctx.font = '20px Arial';
+        // Label below portrait
+        ctx.font = 'bold 16px "Courier New", monospace';
         ctx.textAlign = 'center';
+        ctx.fillStyle = '#ffd700';
         ctx.shadowColor = '#ffd700';
-        ctx.shadowBlur = 10;
-        ctx.fillText('📚', x, y + 50);
+        ctx.shadowBlur = 15;
+        ctx.fillText('📚 JON PAPERNICK 📚', x, y + size/2 + 25);
+        ctx.font = '12px "Courier New", monospace';
+        ctx.fillStyle = '#00ffff';
+        ctx.shadowColor = '#00ffff';
+        ctx.fillText('THE BOOKPEDDLER', x, y + size/2 + 42);
         
         ctx.restore();
     }
